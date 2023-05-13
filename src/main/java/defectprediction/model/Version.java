@@ -1,11 +1,27 @@
 package defectprediction.model;
 
+import org.eclipse.jgit.revwalk.RevCommit;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 public class Version {
 
     private int index; //used in the dataset for prediction
     private long id;   //id used in jira to identify this version
     private String name;
-    private String releaseDate;
+    private LocalDateTime releaseDate;
+    private List<Class> allClasses; //tiene traccia di tutte le classi presenti alla releaseDate di quella versione
+    private List<RevCommit> allCommits; //tiene traccia di tutti i commit afferenti alla versione (effettuati entro la releaseDate della versione)
+    private RevCommit lastCommit;
+
+    public Version(int index, long id, String name, LocalDateTime releaseDate) {
+        this.index = index;
+        this.id = id;
+        this.name = name;
+        this.releaseDate = releaseDate;
+    }
 
     public int getIndex() {
         return index;
@@ -31,11 +47,42 @@ public class Version {
         this.name = name;
     }
 
-    public String getReleaseDate() {
+    public LocalDateTime getReleaseDate() {
         return releaseDate;
     }
 
-    public void setReleaseDate(String releaseDate) {
+    public void setReleaseDate(LocalDateTime releaseDate) {
         this.releaseDate = releaseDate;
+    }
+
+    public List<Class> getAllClasses() {
+        return allClasses;
+    }
+
+    public void setAllClasses(List<Class> allClasses) {
+        this.allClasses = allClasses;
+    }
+
+    public List<RevCommit> getAllCommits() {
+        return allCommits;
+    }
+
+    public void setAllCommits(List<RevCommit> allCommits) {
+        this.allCommits = allCommits;
+    }
+
+    public RevCommit getLastCommit() {
+        return lastCommit;
+    }
+
+    public void setLastCommit(RevCommit lastCommit) {
+        this.lastCommit = lastCommit;
+    }
+
+    public void addCommit(RevCommit commit) {
+        if (allCommits == null) {
+            allCommits = new ArrayList<>();
+        }
+        allCommits.add(commit);
     }
 }

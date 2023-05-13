@@ -4,6 +4,7 @@ public class Class {
 
     private String name;
     private String path;
+    private String content;
     private Version version;
 
     //features values
@@ -17,6 +18,11 @@ public class Class {
     private int churn;          //sum over revisions of added-deleted LOC
     private int maxChurn;       //maximum over revisions of LOC added
     private int averageChurn;   //average churn over revisions
+
+    public Class(String path, String content)  {
+        this.path = path;
+        this.content = content;
+    }
 
     public String getName() {
         return name;
@@ -40,6 +46,14 @@ public class Class {
 
     public void setVersion(Version version) {
         this.version = version;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
     }
 
     public int getSize() {
