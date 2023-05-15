@@ -5,6 +5,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Version {
 
@@ -12,7 +13,7 @@ public class Version {
     private long id;   //id used in jira to identify this version
     private String name;
     private LocalDateTime releaseDate;
-    private List<Class> allClasses; //tiene traccia di tutte le classi presenti alla releaseDate di quella versione
+    private Map<String, Class> allClasses; //tiene traccia di tutte le classi presenti alla releaseDate di quella versione
     private List<RevCommit> allCommits; //tiene traccia di tutti i commit afferenti alla versione (effettuati entro la releaseDate della versione)
     private RevCommit lastCommit;
 
@@ -55,11 +56,11 @@ public class Version {
         this.releaseDate = releaseDate;
     }
 
-    public List<Class> getAllClasses() {
+    public Map<String, Class> getAllClasses() {
         return allClasses;
     }
 
-    public void setAllClasses(List<Class> allClasses) {
+    public void setAllClasses(Map<String, Class> allClasses) {
         this.allClasses = allClasses;
     }
 

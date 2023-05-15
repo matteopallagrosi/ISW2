@@ -1,5 +1,8 @@
 package defectprediction.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Class {
 
     private String name;
@@ -12,16 +15,20 @@ public class Class {
     private int locTouched;     //sum over revisions of LOC added + deleted
     private short nr;           //number of revisions (commit on this class in a specific version)
     private short nFix;         //number of bug fixes
-    private short nAuth;        //number of authors
+    private int nAuth;        //number of authors
     private int locAdded;       //sum over revisions of LOC added
     private int maxLocAdded;    //maximum over revisions of LOC added
     private int churn;          //sum over revisions of added-deleted LOC
     private int maxChurn;       //maximum over revisions of LOC added
-    private int averageChurn;   //average churn over revisions
+    private float averageChurn;   //average churn over revisions
 
-    public Class(String path, String content)  {
+    private List<Integer> churnArray = new ArrayList<>();
+    private ArrayList<String> authors = new ArrayList<>();
+
+    public Class(String path, String content, Version release)  {
         this.path = path;
         this.content = content;
+        this.version = release;
     }
 
     public String getName() {
@@ -88,11 +95,11 @@ public class Class {
         this.nFix = nFix;
     }
 
-    public short getnAuth() {
+    public int getnAuth() {
         return nAuth;
     }
 
-    public void setnAuth(short nAuth) {
+    public void setnAuth(int nAuth) {
         this.nAuth = nAuth;
     }
 
@@ -128,11 +135,43 @@ public class Class {
         this.maxChurn = maxChurn;
     }
 
-    public int getAverageChurn() {
+    public float getAverageChurn() {
         return averageChurn;
     }
 
-    public void setAverageChurn(int averageChurn) {
+    public void setAverageChurn(float averageChurn) {
         this.averageChurn = averageChurn;
+    }
+
+    public void incrementLocTouched(int lines) {
+        locTouched += lines;
+    }
+
+    public void incrementLocAdded(int lines) {
+        locAdded += lines;
+    }
+
+    public void incrementLocChurn(int lines) {
+        churn += lines;
+    }
+
+    public List<Integer> getChurnArray() {
+        return churnArray;
+    }
+
+    public void setChurnArray(List<Integer> churnArray) {
+        this.churnArray = churnArray;
+    }
+
+    public void incrementNumRevisions() {
+        nr += 1;
+    }
+
+    public ArrayList<String> getAuthors() {
+        return authors;
+    }
+
+    public void setAuthors(ArrayList<String> authors) {
+        this.authors = authors;
     }
 }

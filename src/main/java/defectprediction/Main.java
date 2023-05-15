@@ -42,6 +42,10 @@ public class Main {
         //System.out.println(commits.get(0).getFullMessage());
 
         gitInfo.assignCommitsToReleases(commits);
+
+        gitInfo.assignClassesToReleases();
+
+        gitInfo.calculateFeatures();
         return;
     }
 }
