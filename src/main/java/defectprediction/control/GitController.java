@@ -20,6 +20,7 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
@@ -36,6 +37,16 @@ public class GitController {
         this.repo = repo;
         git = new Git(repo);
         this.releases = versions;
+    }
+
+    public void createDataset(String projectName) throws GitAPIException, IOException {
+        List<RevCommit> commits = getCommitsFromMaster();
+        assignCommitsToReleases(commits);
+        assignClassesToReleases();
+        calculateFeatures();
+        printDatasetToCsv(projectName);
+
+
     }
 
     //recupera tutti i commit di tutti i branch della repository corrente
@@ -62,7 +73,7 @@ public class GitController {
     }
 
     // use the following instead to list commits on head branch
-    public List<RevCommit> getCommitsFromMaster() throws IOException, GitAPIException {
+    private List<RevCommit> getCommitsFromMaster() throws IOException, GitAPIException {
 
         List<RevCommit> commitsFromHead = new ArrayList<>();
         ObjectId branchId = this.repo.resolve("HEAD");
@@ -79,7 +90,7 @@ public class GitController {
     }
 
     //assegna i commit alla release di appartenenza
-    public void assignCommitsToReleases(List<RevCommit> commits) {
+    private void assignCommitsToReleases(List<RevCommit> commits) {
         for (RevCommit commit : commits) {
             LocalDateTime commitTime = Utils.convertTime(commit.getCommitTime());
             Version currentRelease;
@@ -105,7 +116,7 @@ public class GitController {
 
     //assegna ad ogni versione le classi presenti in quella versione (con il corrispettivo stato di queste classi in quella versione)
     //in pratica recupera lo stato del repository in una certa versione
-    public void assignClassesToReleases() throws IOException {
+    private void assignClassesToReleases() throws IOException {
         for (Version release : releases) {
             RevCommit lastCommit = release.getLastCommit();
             if (lastCommit != null) {
@@ -140,7 +151,7 @@ public class GitController {
         return allClasses;
     }
 
-    public void calculateFeatures() throws GitAPIException, IOException {
+    private void calculateFeatures() throws GitAPIException, IOException {
         for (Version release : releases) {
             //calcola le metriche (LOC, churn...) per le classi in ogni release
             retrieveNumLines(release);
@@ -179,7 +190,7 @@ public class GitController {
 
     }
 
-    public void listDiff(RevCommit commit, Version release) throws GitAPIException, IOException {
+    private void listDiff(RevCommit commit, Version release) throws GitAPIException, IOException {
         //calcolo le differenze con il commit parent se questo esiste
         if (commit.getParentCount() != 0) {
             String commitId = commit.getId().getName();
@@ -265,6 +276,58 @@ public class GitController {
         if (release.getAllClasses() != null) {
             for (Class javaClass : release.getAllClasses().values()) {
                 javaClass.setnAuth(javaClass.getAuthors().size());
+            }
+        }
+    }
+
+    private void printDatasetToCsv(String projName) {
+        FileWriter fileWriter = null;
+        try {
+            String outname = projName + "VersionInfo.csv";
+            //Name of CSV for output
+            fileWriter = new FileWriter(outname);
+            fileWriter.append("Version,File Name,LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn");
+            fileWriter.append("\n");
+            for (Version release : releases) {
+                if (release.getAllClasses() != null) {
+                    for (Class javaClass : release.getAllClasses().values()) {
+                        fileWriter.append(String.valueOf(javaClass.getVersion().getIndex()));
+                        fileWriter.append(",");
+                        fileWriter.append(javaClass.getPath());
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getSize()));
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getLocTouched()));
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getNr()));
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getnFix()));
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getnAuth()));
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getLocAdded()));
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getMaxLocAdded()));
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getChurn()));
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getMaxChurn()));
+                        fileWriter.append(",");
+                        fileWriter.append(String.valueOf(javaClass.getAverageChurn()));
+                        fileWriter.append("\n");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error in csv writer");
+            e.printStackTrace();
+        } finally {
+            try {
+                fileWriter.flush();
+                fileWriter.close();
+            } catch (IOException e) {
+                System.out.println("Error while flushing/closing fileWriter !!!");
+                e.printStackTrace();
             }
         }
     }

@@ -38,14 +38,7 @@ public class Main {
 
         GitController gitInfo= new GitController(repo, releases);
 
-        List<RevCommit> commits = gitInfo.getCommitsFromMaster();
-        //System.out.println(commits.get(0).getFullMessage());
-
-        gitInfo.assignCommitsToReleases(commits);
-
-        gitInfo.assignClassesToReleases();
-
-        gitInfo.calculateFeatures();
+        gitInfo.createDataset(projectName);
         return;
     }
 }
