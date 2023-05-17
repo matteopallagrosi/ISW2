@@ -23,7 +23,7 @@ public class Class {
     private float averageChurn;   //average churn over revisions
 
     private List<Integer> churnArray = new ArrayList<>();
-    private ArrayList<String> authors = new ArrayList<>();
+    private List<String> authors = new ArrayList<>();
 
     public Class(String path, String content, Version release)  {
         this.path = path;
@@ -167,11 +167,11 @@ public class Class {
         nr += 1;
     }
 
-    public ArrayList<String> getAuthors() {
+    public List<String> getAuthors() {
         return authors;
     }
 
-    public void setAuthors(ArrayList<String> authors) {
+    public void setAuthors(List<String> authors) {
         this.authors = authors;
     }
 }

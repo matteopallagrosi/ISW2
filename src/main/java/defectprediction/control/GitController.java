@@ -22,7 +22,6 @@ import org.eclipse.jgit.util.io.DisabledOutputStream;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -93,7 +92,6 @@ public class GitController {
     private void assignCommitsToReleases(List<RevCommit> commits) {
         for (RevCommit commit : commits) {
             LocalDateTime commitTime = Utils.convertTime(commit.getCommitTime());
-            Version currentRelease;
             for (int i = 0; i<releases.size(); i++) {
                 if (releases.get(i).getReleaseDate().isAfter(commitTime)) {
                     releases.get(i).addCommit(commit);  //aggiungo il commit alla lista dei commit della versione di appartenenza
@@ -201,7 +199,7 @@ public class GitController {
                     .setNewTree(prepareTreeParser(this.repo, commitId))
                     .call();
 
-            System.out.println("Found: " + diffs.size() + " differences");
+            //System.out.println("Found: " + diffs.size() + " differences");
             //ogni oggetto diff mantiene le informazioni sulle modifiche effettuate su un certo file in questo commit (rispetto al precedente)
             for (DiffEntry diff : diffs) {
                 if (diff.getNewPath().contains(".java") && !diff.getNewPath().contains("/test/")) {
@@ -243,10 +241,14 @@ public class GitController {
                         modifiedClass.incrementNumRevisions();
 
                         //inserisce l'autore di questo commit tra gli autori della classe modificata dal commit
-                        ArrayList<String> authors = modifiedClass.getAuthors();
+                        List<String> authors = modifiedClass.getAuthors();
                         String author = commit.getAuthorIdent().getName();
                         if (!(authors.contains(author)))  {
                             modifiedClass.getAuthors().add(author);
+                        }
+
+                        if(modifiedClass.getPath().equals("hedwig-server/src/main/java/org/apache/hedwig/server/common/UnexpectedError.java") && (release.getIndex() == 1)) {
+                            System.out.println(commitId);
                         }
                     }
                 }

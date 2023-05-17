@@ -2,10 +2,10 @@ package defectprediction;
 
 import defectprediction.control.GitController;
 import defectprediction.control.JiraController;
+import defectprediction.model.Ticket;
 import defectprediction.model.Version;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import java.io.File;
 import java.io.IOException;
@@ -36,9 +36,10 @@ public class Main {
         //recupera tutte le releases del progetto (con index, id, nome, releaseDate)
         List<Version> releases = jiraInfo.getReleaseInfo();
 
-        GitController gitInfo= new GitController(repo, releases);
+        //GitController gitInfo= new GitController(repo, releases);
 
-        gitInfo.createDataset(projectName);
+        //gitInfo.createDataset(projectName);
+        List<Ticket> tickets = jiraInfo.getFixTicket("BOOKKEEPER");
         return;
     }
 }
