@@ -1,6 +1,9 @@
 package defectprediction.model;
 
+import org.eclipse.jgit.revwalk.RevCommit;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Ticket {
@@ -12,6 +15,7 @@ public class Ticket {
     private Version fixVersion;
     private LocalDateTime creationDate;      //utilizzata per determinare l'opening version
     private LocalDateTime resolutionDate;    //utilizzata per determinare la fix version
+    private List<RevCommit> fixCommits = new ArrayList<>();      //commits associati a questi ticket
 
     public Ticket(String key, LocalDateTime creationDate, LocalDateTime resolutionDate, Version openingVersion, Version fixVersion, List<Version> affectedVersions, Version injectedVersion) {
         this.key = key;
@@ -21,8 +25,6 @@ public class Ticket {
         this.fixVersion = fixVersion;
         this.affectedVersion = affectedVersions;
         this.injectedVersion = injectedVersion;
-
-
     }
 
     public String getKey() {
@@ -79,5 +81,13 @@ public class Ticket {
 
     public void setResolutionDate(LocalDateTime resolutionDate) {
         this.resolutionDate = resolutionDate;
+    }
+
+    public List<RevCommit> getCommits() {
+        return fixCommits;
+    }
+
+    public void setCommits(List<RevCommit> commits) {
+        this.fixCommits = commits;
     }
 }

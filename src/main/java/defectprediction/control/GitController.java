@@ -2,6 +2,7 @@ package defectprediction.control;
 
 import defectprediction.Utils;
 import defectprediction.model.Class;
+import defectprediction.model.Ticket;
 import defectprediction.model.Version;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -31,11 +32,13 @@ public class GitController {
     private Repository repo;
     private Git git;
     private List<Version> releases;  //le releases del repository ordinate per releaseDate crescente
+    private List<Ticket> tickets;    //i ticket su Jira associati al repository
 
-    public GitController(Repository repo, List<Version> versions) {
+    public GitController(Repository repo, List<Version> versions, List<Ticket> tickets) {
         this.repo = repo;
         git = new Git(repo);
         this.releases = versions;
+        this.tickets = tickets;
     }
 
     public void createDataset(String projectName) throws GitAPIException, IOException {
@@ -43,9 +46,9 @@ public class GitController {
         assignCommitsToReleases(commits);
         assignClassesToReleases();
         calculateFeatures();
+        setFixCommits();
+        setBuggyClasses();
         printDatasetToCsv(projectName);
-
-
     }
 
     //recupera tutti i commit di tutti i branch della repository corrente
@@ -188,6 +191,31 @@ public class GitController {
 
     }
 
+    //ritorna la lista dei path delle classi modificate dal commit
+    private List<String> getClassesFromCommit(RevCommit commit) throws GitAPIException, IOException {
+        List<String> modifiedClassPaths = new ArrayList<>();  //path delle classi modificate dal commit
+        if (commit.getParentCount() == 0) return modifiedClassPaths;
+
+        String commitId = commit.getId().getName();
+        String parentCommit = commitId + "^";
+
+        final List<DiffEntry> diffs = this.git.diff()
+                .setOldTree(prepareTreeParser(this.repo, parentCommit))
+                .setNewTree(prepareTreeParser(this.repo, commitId))
+                .call();
+
+        //recupera la lista delle modifiche effettuate rispetto al commit precedente, ogni modifica è relativa ad un certo file
+        for (DiffEntry diff : diffs) {
+            if (diff.getNewPath().contains(".java") && !diff.getNewPath().contains("/test/")) {
+                //recupera il path della classe modificata
+                String modifiedClassPath = diff.getNewPath();
+                modifiedClassPaths.add(modifiedClassPath);
+            }
+        }
+
+        return modifiedClassPaths;
+    }
+
     private void listDiff(RevCommit commit, Version release) throws GitAPIException, IOException {
         //calcolo le differenze con il commit parent se questo esiste
         if (commit.getParentCount() != 0) {
@@ -282,13 +310,89 @@ public class GitController {
         }
     }
 
+
+    private void setFixCommits() {
+        int count = 0;
+        for (Ticket ticket : tickets) {
+            if (assignCommitToTicket(ticket)) {
+                count++;
+            }
+        }
+        System.out.println(count);
+    }
+
+
+    //assegna il fix commit che riporta l'id del ticket (qualora il commit non fosse presente il ticket viene scartato)
+    private boolean assignCommitToTicket(Ticket fixTicket) {
+        boolean found = false;
+        for (Version release : releases) {
+            if (release.getAllCommits() != null) {
+                for (RevCommit fixCommit : release.getAllCommits()) {
+                    String fixMessage = fixTicket.getKey() + ":";
+                    if (fixCommit.getFullMessage().contains(fixMessage)) {
+                        fixTicket.getCommits().add(fixCommit);
+                        //System.out.println(fixTicket.getKey());
+                        //System.out.println(fixCommit.getFullMessage());
+                        found = true;
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    private void setBuggyClasses() throws GitAPIException, IOException {
+        for (Ticket ticket : tickets) {
+            //scarta i ticket che hanno IV = FV, perchè siamo interessati solo ai difetti post-release (IV<FV)
+            if (ticket.getInjectedVersion().getId() == ticket.getFixVersion().getId()) continue;
+            //recupera i fix commit associati al ticket
+            for (RevCommit fixCommit : ticket.getCommits())  {
+                //recupera il path delle classi modificate dal commit (ignorando le classi di test)
+                List<String> classPaths = getClassesFromCommit(fixCommit);
+                //recupera tutte le versioni tra IV (inclusa) e FV(esclusa) indicate sul ticket
+                //etichetta come buggy le classi modificate dal commit come in queste versioni
+                Version injectedVersion = ticket.getInjectedVersion();
+                Version fixVersion = ticket.getFixVersion();
+                setNumFixes(classPaths, fixVersion);
+                if (!classPaths.isEmpty()) {
+                    labelClasses(classPaths, injectedVersion, fixVersion);
+                }
+            }
+        }
+    }
+
+    private void labelClasses(List<String>  classPaths, Version injectedVersion, Version fixVersion) {
+        //itera fino all'injected version e si ferma
+        for (Version version : releases) {
+            if (version.getAllClasses() == null) continue;
+            if (version.getIndex() == fixVersion.getIndex()) break;
+            if (version.getIndex() >= injectedVersion.getIndex() && version.getIndex() < fixVersion.getIndex()) {
+                for (String modifiedClass : classPaths){
+                    Class modifclass = version.getAllClasses().get(modifiedClass);
+                    if (modifclass!= null) {
+                        //setta la classe come buggy in una certa versione
+                        modifclass.setBuggy(true);
+                    }
+                }
+            }
+        }
+    }
+
+    //incrementa di 1 il numero di fix delle classi associate a un fix commit nella fix version (conta solo i fix dei difetti post-release)
+    private void setNumFixes(List<String> classPaths, Version fixVersion) {
+        for (String classPath : classPaths) {
+            Class modifiedClass = fixVersion.getAllClasses().get(classPath);
+            if (modifiedClass != null) modifiedClass.addFix();
+        }
+    }
+
     private void printDatasetToCsv(String projName) {
         FileWriter fileWriter = null;
         try {
             String outname = projName + "VersionInfo.csv";
             //Name of CSV for output
             fileWriter = new FileWriter(outname);
-            fileWriter.append("Version,File Name,LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn");
+            fileWriter.append("Version,File Name,LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
             fileWriter.append("\n");
             for (Version release : releases) {
                 if (release.getAllClasses() != null) {
@@ -316,6 +420,9 @@ public class GitController {
                         fileWriter.append(String.valueOf(javaClass.getMaxChurn()));
                         fileWriter.append(",");
                         fileWriter.append(String.valueOf(javaClass.getAverageChurn()));
+                        fileWriter.append(",");
+                        if (javaClass.isBuggy()) fileWriter.append("Yes");
+                        else fileWriter.append("No");
                         fileWriter.append("\n");
                     }
                 }

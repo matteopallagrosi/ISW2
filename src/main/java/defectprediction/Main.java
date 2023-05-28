@@ -31,15 +31,20 @@ public class Main {
             .findGitDir()
             .build();
 
-        JiraController jiraInfo = new JiraController(projectName);
+        JiraController jiraInfo = new JiraController();
 
         //recupera tutte le releases del progetto (con index, id, nome, releaseDate)
-        List<Version> releases = jiraInfo.getReleaseInfo();
+        List<Version> releases = jiraInfo.getReleaseInfo(projectName);
+        //recupera i fix ticket associati al progetti
+        List<Ticket> tickets = jiraInfo.getFixTicket("BOOKKEEPER", releases);
 
-        //GitController gitInfo= new GitController(repo, releases);
+        jiraInfo.calculateProportionColdStart();
+        jiraInfo.assignInjectedInversion(releases, tickets);
 
-        //gitInfo.createDataset(projectName);
-        List<Ticket> tickets = jiraInfo.getFixTicket("BOOKKEEPER");
+        GitController gitInfo= new GitController(repo, releases,tickets);
+
+        gitInfo.createDataset(projectName);
+
         return;
     }
 }

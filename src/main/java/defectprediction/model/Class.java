@@ -11,16 +11,17 @@ public class Class {
     private Version version;
 
     //features values
-    private int size;           //size = LOC = lines of code
-    private int locTouched;     //sum over revisions of LOC added + deleted
-    private short nr;           //number of revisions (commit on this class in a specific version)
-    private short nFix;         //number of bug fixes
-    private int nAuth;        //number of authors
-    private int locAdded;       //sum over revisions of LOC added
-    private int maxLocAdded;    //maximum over revisions of LOC added
-    private int churn;          //sum over revisions of added-deleted LOC
-    private int maxChurn;       //maximum over revisions of LOC added
-    private float averageChurn;   //average churn over revisions
+    private int size;                   //size = LOC = lines of code
+    private int locTouched;             //sum over revisions of LOC added + deleted
+    private short nr;                   //number of revisions (commit on this class in a specific version)
+    private short nFix;                 //number of bug fixes
+    private int nAuth;                  //number of authors
+    private int locAdded;               //sum over revisions of LOC added
+    private int maxLocAdded;            //maximum over revisions of LOC added
+    private int churn;                  //sum over revisions of added-deleted LOC
+    private int maxChurn;               //maximum over revisions of LOC added
+    private float averageChurn;         //average churn over revisions
+    private boolean isBuggy = false;    //buggyness of this class in a specific version
 
     private List<Integer> churnArray = new ArrayList<>();
     private List<String> authors = new ArrayList<>();
@@ -93,6 +94,10 @@ public class Class {
 
     public void setnFix(short nFix) {
         this.nFix = nFix;
+    }
+
+    public void addFix() {
+        this.nFix++;
     }
 
     public int getnAuth() {
@@ -173,5 +178,13 @@ public class Class {
 
     public void setAuthors(List<String> authors) {
         this.authors = authors;
+    }
+
+    public boolean isBuggy() {
+        return isBuggy;
+    }
+
+    public void setBuggy(boolean buggy) {
+        isBuggy = buggy;
     }
 }
