@@ -44,7 +44,5 @@ public class Main {
         GitController gitInfo= new GitController(repo, releases,tickets);
 
         gitInfo.createDataset(projectName);
-
-        return;
     }
 }

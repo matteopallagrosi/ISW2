@@ -35,6 +35,8 @@ public class GitController {
     private Git git;
     private List<Version> releases;  //le releases del repository ordinate per releaseDate crescente
     private List<Ticket> tickets;    //i ticket su Jira associati al repository
+    private static final String CLASS_PATH = ".java";
+    private static final String TEST_DIR = "/test/";
 
     public GitController(Repository repo, List<Version> versions, List<Ticket> tickets) {
         this.repo = repo;
@@ -165,7 +167,7 @@ public class GitController {
 
         while(treeWalk.next()) {
             //considera solo le classi java (esludendo le classi di test)
-            if (treeWalk.getPathString().contains(".java") && !treeWalk.getPathString().contains("/test/")) {
+            if (treeWalk.getPathString().contains(CLASS_PATH) && !treeWalk.getPathString().contains(TEST_DIR)) {
                 allClasses.put(treeWalk.getPathString(), new Class(treeWalk.getPathString(), new String(this.repo.open(treeWalk.getObjectId(0)).getBytes(), StandardCharsets.UTF_8), release));
                 out.println(treeWalk.getPathString());
             }
@@ -229,7 +231,7 @@ public class GitController {
 
         //recupera la lista delle modifiche effettuate rispetto al commit precedente, ogni modifica è relativa ad un certo file
         for (DiffEntry diff : diffs) {
-            if (diff.getNewPath().contains(".java") && !diff.getNewPath().contains("/test/")) {
+            if (diff.getNewPath().contains(CLASS_PATH) && !diff.getNewPath().contains(TEST_DIR)) {
                 //recupera il path della classe modificata
                 String modifiedClassPath = diff.getNewPath();
                 modifiedClassPaths.add(modifiedClassPath);
@@ -241,66 +243,64 @@ public class GitController {
 
     private void listDiff(RevCommit commit, Version release) throws GitAPIException, IOException {
         //calcolo le differenze con il commit parent se questo esiste
-        if (commit.getParentCount() != 0) {
-            String commitId = commit.getId().getName();
-            String parentCommit = commitId + "^";
+        if (commit.getParentCount() == 0) return;
+        String commitId = commit.getId().getName();
+        String parentCommit = commitId + "^";
 
-            final List<DiffEntry> diffs = this.git.diff()
-                    .setOldTree(prepareTreeParser(this.repo, parentCommit))
-                    .setNewTree(prepareTreeParser(this.repo, commitId))
-                    .call();
+        final List<DiffEntry> diffs = this.git.diff()
+                .setOldTree(prepareTreeParser(this.repo, parentCommit))
+                .setNewTree(prepareTreeParser(this.repo, commitId))
+                .call();
 
-            //System.out.println("Found: " + diffs.size() + " differences");
-            //ogni oggetto diff mantiene le informazioni sulle modifiche effettuate su un certo file in questo commit (rispetto al precedente)
-            for (DiffEntry diff : diffs) {
-                if (diff.getNewPath().contains(".java") && !diff.getNewPath().contains("/test/")) {
-                    DiffFormatter formatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
-                    formatter.setRepository(this.repo);
+        //ogni oggetto diff mantiene le informazioni sulle modifiche effettuate su un certo file in questo commit (rispetto al precedente)
+        for (DiffEntry diff : diffs) {
+            if (diff.getNewPath().contains(CLASS_PATH) && !diff.getNewPath().contains(TEST_DIR)) {
+                DiffFormatter formatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
+                formatter.setRepository(this.repo);
 
-                    String modifiedClassPath = diff.getNewPath();
+                String modifiedClassPath = diff.getNewPath();
 
-                    //recupera la classe modificata tra le classi della release fissata
-                    Class modifiedClass = release.getAllClasses().get(modifiedClassPath);
+                //recupera la classe modificata tra le classi della release fissata
+                Class modifiedClass = release.getAllClasses().get(modifiedClassPath);
 
-                    //ignora quelle classi che non appartengono allo stato finale del repository nella versione considerata (classi aggiunte e poi rimosse prima del commit finale della versione)
-                    if (modifiedClass != null) {
+                //ignora quelle classi che non appartengono allo stato finale del repository nella versione considerata (classi aggiunte e poi rimosse prima del commit finale della versione)
+                if (modifiedClass != null) {
 
-                        //calcola linee di codice aggiunte e rimosse con questa modifica nella classe
-                        int addedLines = 0;
-                        int deletedLines = 0;
-                        for (Edit edit : formatter.toFileHeader(diff).toEditList()) {
-                            addedLines += edit.getEndB() - edit.getBeginB();
-                            deletedLines += edit.getEndA() - edit.getBeginA();
-                        }
+                    //calcola linee di codice aggiunte e rimosse con questa modifica nella classe
+                    int addedLines = 0;
+                    int deletedLines = 0;
+                    for (Edit edit : formatter.toFileHeader(diff).toEditList()) {
+                        addedLines += edit.getEndB() - edit.getBeginB();
+                        deletedLines += edit.getEndA() - edit.getBeginA();
+                    }
 
-                        int locTouched = addedLines + deletedLines;
-                        int churn = addedLines - deletedLines;
-                        //incremento le metriche di quella classe
-                        modifiedClass.incrementLocTouched(locTouched);
-                        modifiedClass.incrementLocAdded(addedLines);
-                        modifiedClass.incrementLocChurn(churn);
+                    int locTouched = addedLines + deletedLines;
+                    int churn = addedLines - deletedLines;
+                    //incremento le metriche di quella classe
+                    modifiedClass.incrementLocTouched(locTouched);
+                    modifiedClass.incrementLocAdded(addedLines);
+                    modifiedClass.incrementLocChurn(churn);
 
-                        if (addedLines >= modifiedClass.getMaxLocAdded()) {
-                            modifiedClass.setMaxLocAdded(addedLines);
-                        }
-                        if (churn >= modifiedClass.getMaxChurn()) {
-                            modifiedClass.setMaxChurn(churn);
-                        }
+                    if (addedLines >= modifiedClass.getMaxLocAdded()) {
+                        modifiedClass.setMaxLocAdded(addedLines);
+                    }
+                    if (churn >= modifiedClass.getMaxChurn()) {
+                        modifiedClass.setMaxChurn(churn);
+                    }
 
-                        modifiedClass.getChurnArray().add(churn);
+                    modifiedClass.getChurnArray().add(churn);
 
-                        modifiedClass.incrementNumRevisions();
+                    modifiedClass.incrementNumRevisions();
 
-                        //inserisce l'autore di questo commit tra gli autori della classe modificata dal commit
-                        List<String> authors = modifiedClass.getAuthors();
-                        String author = commit.getAuthorIdent().getName();
-                        if (!(authors.contains(author)))  {
-                            modifiedClass.getAuthors().add(author);
-                        }
+                    //inserisce l'autore di questo commit tra gli autori della classe modificata dal commit
+                    List<String> authors = modifiedClass.getAuthors();
+                    String author = commit.getAuthorIdent().getName();
+                    if (!(authors.contains(author)))  {
+                        modifiedClass.getAuthors().add(author);
+                    }
 
-                        if(modifiedClass.getPath().equals("hedwig-server/src/main/java/org/apache/hedwig/server/common/UnexpectedError.java") && (release.getIndex() == 1)) {
-                            out.println(commitId);
-                        }
+                    if(modifiedClass.getPath().equals("hedwig-server/src/main/java/org/apache/hedwig/server/common/UnexpectedError.java") && (release.getIndex() == 1)) {
+                        out.println(commitId);
                     }
                 }
             }
@@ -354,8 +354,6 @@ public class GitController {
                     String fixMessage = fixTicket.getKey() + ":";
                     if (fixCommit.getFullMessage().contains(fixMessage)) {
                         fixTicket.getCommits().add(fixCommit);
-                        //System.out.println(fixTicket.getKey());
-                        //System.out.println(fixCommit.getFullMessage());
                         found = true;
                     }
                 }
@@ -387,7 +385,6 @@ public class GitController {
     private void labelClasses(List<String>  classPaths, Version injectedVersion, Version fixVersion) {
         //itera fino all'injected version e si ferma
         for (Version version : releases) {
-            if (version.getAllClasses() == null) continue;
             if (version.getIndex() == fixVersion.getIndex()) break;
             if (version.getIndex() >= injectedVersion.getIndex() && version.getIndex() < fixVersion.getIndex()) {
                 for (String modifiedClass : classPaths){

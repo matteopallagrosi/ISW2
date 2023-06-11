@@ -14,6 +14,8 @@ import java.util.TimeZone;
 
 public class Utils {
 
+    private Utils() {}
+
     //recupera l'oggetto json associato all'url indicato
     public static JSONObject readJsonFromUrl(String url) throws IOException, JSONException {
         InputStream is = new URL(url).openStream();
@@ -38,14 +40,6 @@ public class Utils {
 
     //converte unix time in localDateTime
     public static LocalDateTime convertTime(long unixSeconds) {
-        /*// convert seconds to milliseconds
-        Date date = new java.util.Date(unixSeconds*1000L);
-        // the format of your date
-        SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-        // give a timezone reference for formatting (see comment at the bottom)
-        sdf.setTimeZone(java.util.TimeZone.getTimeZone("GMT-0"));
-        String formattedDate = sdf.format(date);
-        return formattedDate;*/
         return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixSeconds),
                         TimeZone.getDefault().toZoneId());
     }

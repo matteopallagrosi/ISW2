@@ -47,11 +47,6 @@ public class JiraController {
         //@Override
         releases.sort(LocalDateTime::compareTo);
 
-        //considera i progetti che hanno almeno 6 release
-        if (releases.size() < 6) {
-            //TODO
-        }
-
         List<Version> allReleases = new ArrayList<>();
         int numVersions = releases.size();
         for (int i = 0; i < numVersions; i++) {

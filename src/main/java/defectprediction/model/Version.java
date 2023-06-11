@@ -17,7 +17,6 @@ public class Version {
     private List<RevCommit> allCommits; //tiene traccia di tutti i commit afferenti alla versione (effettuati entro la releaseDate della versione)
     private RevCommit lastCommit;
     private List<Ticket> fixTickets = new ArrayList<>();    //ticket su Jira con fixVersion uguale a questa versione
-    private double P_Increment;
     private double proportion;
 
     public Version(int index, long id, String name, LocalDateTime releaseDate) {
@@ -96,14 +95,6 @@ public class Version {
 
     public void setFixTickets(List<Ticket> fixTickets) {
         this.fixTickets = fixTickets;
-    }
-
-    public double getP_Increment() {
-        return P_Increment;
-    }
-
-    public void setP_Increment(double p_Increment) {
-        P_Increment = p_Increment;
     }
 
     public double getProportion() {
