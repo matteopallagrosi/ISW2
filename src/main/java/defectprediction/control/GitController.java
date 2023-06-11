@@ -44,6 +44,7 @@ public class GitController {
     public void createDataset(String projectName) throws GitAPIException, IOException {
         List<RevCommit> commits = getCommitsFromMaster();
         assignCommitsToReleases(commits);
+        checkEmptyReleases();
         assignClassesToReleases();
         calculateFeatures();
         setFixCommits();
@@ -112,6 +113,26 @@ public class GitController {
             if (commits != null) {
                 release.setLastCommit(commits.get(0));
             }
+        }
+    }
+
+    //verifica la presenza di release con zero commit associati, e, se presenti, elimina le release vuote e shifta gli indici delle release
+    private void checkEmptyReleases() {
+        Iterator<Version> i = releases.iterator();
+        while (i.hasNext()) {
+            Version currentRelease = i.next(); // must be called before you can call i.remove()
+            System.out.println("release n. " + currentRelease.getIndex());
+            // Do something
+            if (currentRelease.getAllCommits() == null) {
+                shiftReleaseIndexes(currentRelease.getIndex());
+                i.remove();
+            }
+        }
+    }
+
+    private void shiftReleaseIndexes(int index) {
+        for (Version release : releases) {
+            if (release.getIndex() > index) release.setIndex(release.getIndex() - 1);
         }
     }
 
@@ -389,7 +410,7 @@ public class GitController {
     private void printDatasetToCsv(String projName) {
         FileWriter fileWriter = null;
         try {
-            String outname = projName + "VersionInfo.csv";
+            String outname = projName + "dataset.csv";
             //Name of CSV for output
             fileWriter = new FileWriter(outname);
             fileWriter.append("Version,File Name,LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
