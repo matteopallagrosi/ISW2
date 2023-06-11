@@ -1,5 +1,7 @@
 package defectprediction.control;
 
+import static java.lang.System.*;
+
 import defectprediction.Main;
 import defectprediction.Utils;
 import defectprediction.model.Ticket;
@@ -128,7 +130,7 @@ public class JiraController {
                     fixVersion.getFixTickets().add(ticket);
                 }
             }
-            System.out.println("deleted tickets: " + deletedTicket);
+            out.println("deleted tickets: " + deletedTicket);
         } while (i < total);
         return fixTickets;
     }
@@ -169,20 +171,20 @@ public class JiraController {
     }
 
     //calcolo l'injected version per i ticket che non la presentano
-    public void assignInjectedInversion(List<Version> releases, List<Ticket> tickets) throws IOException {
+    public void assignInjectedInversion(List<Version> releases) {
         for (Version release : releases) {
             //calcola proportion per una certa versione
             release.setProportion(calculateProportion(release, releases));
             //applica il proportion calcolato a tutti i ticket di questa versione
             for (Ticket ticket : release.getFixTickets()) {
                 if (ticket.getInjectedVersion() == null) {
-                    double difference = ticket.getFixVersion().getIndex() - ticket.getOpeningVersion().getIndex();
+                    int difference = ticket.getFixVersion().getIndex() - ticket.getOpeningVersion().getIndex();
                     if (difference == 0) difference = 1;
                     double injectedIndex = ticket.getFixVersion().getIndex() - (difference * ticket.getFixVersion().getProportion());
-                    System.out.println(ticket.getFixVersion().getProportion());
-                    System.out.println(ticket.getKey() + " p = " + injectedIndex);
+                    out.println(ticket.getFixVersion().getProportion());
+                    out.println(ticket.getKey() + " p = " + injectedIndex);
                     long index = Double.valueOf(Math.ceil(injectedIndex)).longValue();
-                    System.out.println(index);
+                    out.println(index);
                     Version injectedVersion = getVersionFromIndex(index, releases);
                     ticket.setInjectedVersion(injectedVersion);
                 }
@@ -192,7 +194,7 @@ public class JiraController {
 
     //calcola il valore di proportion da utilizzare per il calcolo di IV per i ticket con fixVersion = currentVersion e IV mancante
     //se nelle versioni [1, currentVersion-1] ci sono meno di 5 ticket utilizza ProportionColdStart, altrimenti ProportionIncrement
-    private double calculateProportion(Version currentVersion, List<Version> allReleases) throws IOException {
+    private double calculateProportion(Version currentVersion, List<Version> allReleases) {
         int count = 0;
         double proportion = 0;
         //conta quanti ticket sono disponibili nelle versioni [1, currentVersion-1]
@@ -247,7 +249,7 @@ public class JiraController {
         List<Double> medium = new ArrayList<>();
         //esegue il coldStart su NUM_PROJECT progetti
         for (int i = 0; i < NUM_PROJECT; i++) {
-            System.out.println("sto calcolando coldStart per il progetto " + i);
+            out.println("sto calcolando coldStart per il progetto " + i);
             Properties p = new Properties();
             String project;
             //recupero i ticket di altri progetti con cui fare coldStart
@@ -277,14 +279,14 @@ public class JiraController {
             }
 
             medium.add(sum / numTickets);
-            System.out.println("sum del progetto " + i + " " + sum);
-            System.out.println("num tickets del progetto " + i + " " + numTickets);
+            out.println("sum del progetto " + i + " " + sum);
+            out.println("num tickets del progetto " + i + " " + numTickets);
         }
 
         medium.sort(Double::compareTo);
         //ritorna la mediana tra i valori di proportion calcolati per ciascuno dei progetti
         coldStartP =  medium.get((NUM_PROJECT-1)/2);
-        System.out.println("calcolato coldStart = " + coldStartP);
+        out.println("calcolato coldStart = " + coldStartP);
     }
 }
 

@@ -1,5 +1,7 @@
 package defectprediction.control;
 
+import static java.lang.System.*;
+
 import defectprediction.Utils;
 import defectprediction.model.Class;
 import defectprediction.model.Ticket;
@@ -63,13 +65,13 @@ public class GitController {
             for( Ref ref : allRefs ) {
                 revWalk.markStart( revWalk.parseCommit( ref.getObjectId() ));
             }
-            System.out.println("Walking all commits starting with " + allRefs.size() + " refs: " + allRefs);
+            out.println("Walking all commits starting with " + allRefs.size() + " refs: " + allRefs);
             int count = 0;
             for( RevCommit commit : revWalk ) {
                 allCommits.add(commit);
                 count++;
             }
-            System.out.println("Had " + count + " commits");
+            out.println("Had " + count + " commits");
         }
 
         return allCommits;
@@ -87,7 +89,7 @@ public class GitController {
                 commitsFromHead.add(commit);
                 count++;
         }
-            System.out.println(count);
+            out.println(count);
 
         return commitsFromHead;
     }
@@ -121,7 +123,7 @@ public class GitController {
         Iterator<Version> i = releases.iterator();
         while (i.hasNext()) {
             Version currentRelease = i.next(); // must be called before you can call i.remove()
-            System.out.println("release n. " + currentRelease.getIndex());
+            out.println("release n. " + currentRelease.getIndex());
             // Do something
             if (currentRelease.getAllCommits() == null) {
                 shiftReleaseIndexes(currentRelease.getIndex());
@@ -165,7 +167,7 @@ public class GitController {
             //considera solo le classi java (esludendo le classi di test)
             if (treeWalk.getPathString().contains(".java") && !treeWalk.getPathString().contains("/test/")) {
                 allClasses.put(treeWalk.getPathString(), new Class(treeWalk.getPathString(), new String(this.repo.open(treeWalk.getObjectId(0)).getBytes(), StandardCharsets.UTF_8), release));
-                System.out.println(treeWalk.getPathString());
+                out.println(treeWalk.getPathString());
             }
         }
 
@@ -297,7 +299,7 @@ public class GitController {
                         }
 
                         if(modifiedClass.getPath().equals("hedwig-server/src/main/java/org/apache/hedwig/server/common/UnexpectedError.java") && (release.getIndex() == 1)) {
-                            System.out.println(commitId);
+                            out.println(commitId);
                         }
                     }
                 }
@@ -339,7 +341,7 @@ public class GitController {
                 count++;
             }
         }
-        System.out.println(count);
+        out.println(count);
     }
 
 
@@ -449,14 +451,14 @@ public class GitController {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Error in csv writer");
+            out.println("Error in csv writer");
             e.printStackTrace();
         } finally {
             try {
                 fileWriter.flush();
                 fileWriter.close();
             } catch (IOException e) {
-                System.out.println("Error while flushing/closing fileWriter !!!");
+                out.println("Error while flushing/closing fileWriter !!!");
                 e.printStackTrace();
             }
         }

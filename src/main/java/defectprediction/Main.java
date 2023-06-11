@@ -39,7 +39,7 @@ public class Main {
         List<Ticket> tickets = jiraInfo.getFixTicket("BOOKKEEPER", releases);
 
         jiraInfo.calculateProportionColdStart();
-        jiraInfo.assignInjectedInversion(releases, tickets);
+        jiraInfo.assignInjectedInversion(releases);
 
         GitController gitInfo= new GitController(repo, releases,tickets);
 
