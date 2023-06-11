@@ -406,7 +406,7 @@ public class GitController {
         }
     }
 
-    private void printDatasetToCsv(String projName) {
+    private void printDatasetToCsv(String projName) throws IOException {
         FileWriter fileWriter = null;
         try {
             String outname = projName + "dataset.csv";
@@ -447,17 +447,9 @@ public class GitController {
                     }
                 }
             }
-        } catch (Exception e) {
-            out.println("Error in csv writer");
-            e.printStackTrace();
         } finally {
-            try {
-                fileWriter.flush();
-                fileWriter.close();
-            } catch (IOException e) {
-                out.println("Error while flushing/closing fileWriter !!!");
-                e.printStackTrace();
-            }
+            fileWriter.flush();
+            fileWriter.close();
         }
     }
 }

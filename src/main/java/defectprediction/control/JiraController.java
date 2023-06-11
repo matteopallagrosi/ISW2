@@ -154,7 +154,7 @@ public class JiraController {
         return currentVersion;
     }
 
-    private Version getVersionFromIndex(long index, List<Version> allReleases) {
+    private Version getVersionFromIndex(double index, List<Version> allReleases) {
         Version currentVersion = allReleases.get(0);
         for (int i = 0; i<allReleases.size(); i++) {
             if (allReleases.get(i).getIndex() == index) {
@@ -178,7 +178,7 @@ public class JiraController {
                     double injectedIndex = ticket.getFixVersion().getIndex() - (difference * ticket.getFixVersion().getProportion());
                     out.println(ticket.getFixVersion().getProportion());
                     out.println(ticket.getKey() + " p = " + injectedIndex);
-                    long index = Double.valueOf(Math.ceil(injectedIndex)).longValue();
+                    double index = Math.ceil(injectedIndex);
                     out.println(index);
                     Version injectedVersion = getVersionFromIndex(index, releases);
                     ticket.setInjectedVersion(injectedVersion);
@@ -273,7 +273,7 @@ public class JiraController {
                 numTickets += 1;
             }
 
-            medium.add(sum / numTickets);
+            if (numTickets != 0) medium.add(sum / numTickets);
             out.println("sum del progetto " + i + " " + sum);
             out.println("num tickets del progetto " + i + " " + numTickets);
         }
