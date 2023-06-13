@@ -37,6 +37,7 @@ public class GitController {
     private List<Ticket> tickets;    //i ticket su Jira associati al repository
     private static final String CLASS_PATH = ".java";
     private static final String TEST_DIR = "/test/";
+    private String prova = "provaSonar";
 
     public GitController(Repository repo, List<Version> versions, List<Ticket> tickets) {
         this.repo = repo;

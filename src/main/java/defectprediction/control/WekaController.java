@@ -1,8 +1,6 @@
 package defectprediction.control;
 
-import defectprediction.model.Class;
 import defectprediction.model.ClassifierEvaluation;
-import defectprediction.model.Version;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
