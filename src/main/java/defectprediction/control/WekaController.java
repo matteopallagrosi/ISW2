@@ -1,5 +1,7 @@
 package defectprediction.control;
 
+import static java.lang.System.*;
+
 import defectprediction.model.ClassifierEvaluation;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -9,6 +11,7 @@ import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils.DataSource;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,8 +47,8 @@ public class WekaController {
             String testingSet = projectName + "testing_" + i + ".arff";
             DataSource testingSource = new DataSource(testingSet);
             Instances testing = testingSource.getDataSet();
-            System.out.println(trainingSet);
-            System.out.println(testingSet);
+            out.println(trainingSet);
+            out.println(testingSet);
 
             int numAttr = training.numAttributes();
             training.setClassIndex(numAttr - 1);
@@ -58,16 +61,18 @@ public class WekaController {
 
             eval.evaluateModel(classifier, testing);
 
-            evaluations.add(new ClassifierEvaluation(projectName, i, classifierName, eval.truePositiveRate(0), eval.falsePositiveRate(0), eval.precision(0), eval.recall(0), eval.areaUnderROC(0), eval.kappa(), eval.fMeasure(0)));
+            ClassifierEvaluation evaluation = new ClassifierEvaluation(projectName, i, classifierName, eval.precision(0), eval.recall(0), eval.areaUnderROC(0), eval.kappa());
+            evaluation.setTpRate(eval.truePositiveRate(0));
+            evaluation.setFpRate(eval.falsePositiveRate(0));
+            evaluation.setF1(eval.fMeasure(0));
+            evaluations.add(evaluation);
         }
     }
 
     public void printEvaluationsToCsv(String projName) throws IOException {
-        FileWriter fileWriter = null;
-        try {
-            String outname = projName + "evaluations.csv";
+        String outname = projName + "evaluations.csv";
+        try (FileWriter fileWriter = new FileWriter(outname);) {
             //Name of CSV for output
-            fileWriter = new FileWriter(outname);
             fileWriter.append("Dataset, #TrainingReleases, Classifier, TruePositiveRate, FalsePositiveRate, Precision, Recall, AUC, Kappa, FMeasure");
             fileWriter.append("\n");
             for (ClassifierEvaluation evaluation : evaluations) {
@@ -92,8 +97,6 @@ public class WekaController {
                 fileWriter.append(String.valueOf(evaluation.getF1()));
                 fileWriter.append("\n");
             }
-        } finally {
-            fileWriter.close();
         }
     }
 }

@@ -1,21 +1,17 @@
 package defectprediction;
 
+import static java.lang.System.*;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import weka.core.Instances;
 import weka.core.converters.ArffSaver;
 import weka.core.converters.CSVLoader;
-
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.Scanner;
 import java.util.TimeZone;
 
 public class Utils {
@@ -64,8 +60,8 @@ public class Utils {
     }
 
     public static void replaceLine(String filePath) {
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(filePath));
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             StringBuilder content = new StringBuilder();
             String line;
 
@@ -79,16 +75,11 @@ public class Utils {
                 lineNumber++;
             }
 
-            reader.close();
-
-            BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
             writer.write(content.toString());
-            writer.close();
-
-            System.out.println("Linea sostituita correttamente.");
+            out.println("Linea sostituita correttamente.");
 
         } catch (IOException e) {
-            System.out.println("Si è verificato un errore durante la sostituzione della linea: " + e.getMessage());
+            out.println("Si è verificato un errore durante la sostituzione della linea: " + e.getMessage());
         }
     }
 

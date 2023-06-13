@@ -5,11 +5,9 @@ import defectprediction.control.JiraController;
 import defectprediction.control.WekaController;
 import defectprediction.model.Ticket;
 import defectprediction.model.Version;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Objects;
@@ -48,7 +46,5 @@ public class Main {
 
         WekaController wekaController = new WekaController();
         wekaController.simpleEvaluation(projectName, releases.size());
-
-        return;
     }
 }

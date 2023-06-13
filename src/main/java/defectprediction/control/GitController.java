@@ -37,7 +37,6 @@ public class GitController {
     private List<Ticket> tickets;    //i ticket su Jira associati al repository
     private static final String CLASS_PATH = ".java";
     private static final String TEST_DIR = "/test/";
-    private String prova = "provaSonar";
 
     public GitController(Repository repo, List<Version> versions, List<Ticket> tickets) {
         this.repo = repo;
@@ -417,14 +416,13 @@ public class GitController {
     }
 
     private void printCsvWalkForward(String projName) throws IOException {
-        FileWriter trainingWriter = null;
-        FileWriter testingWriter = null;
         //crea due csv per ogni release del progetto (a partire dalla seconda release), uno conterrà il set di dati per il training, l'altro per il setting, secondo un approccio walkForward
         for (int i = 1; i < releases.size(); i++) { //l'indice i tiene traccia della creazione di training e testing set usati nell'i-esima iterazione del walkForward
-            try {
-                String trainingName = projName + "training_" + i + ".csv";
+            String trainingName = projName + "training_" + i + ".csv";
+            String testingName = projName + "testing_" + i + ".csv";
+            try (FileWriter trainingWriter = new FileWriter(trainingName);
+                 FileWriter testingWriter = new FileWriter(testingName)) {
                 //Name of CSV for output
-                trainingWriter = new FileWriter(trainingName);
                 trainingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
                 trainingWriter.append("\n");
                 for (int j = 0; j < i; j++) {
@@ -455,8 +453,6 @@ public class GitController {
                         }
                 }
 
-                String testingName = projName + "testing_" + i + ".csv";
-                testingWriter = new FileWriter(testingName);
                 testingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
                 testingWriter.append("\n");
                 for (Class javaClass : releases.get(i).getAllClasses().values()) {
@@ -484,19 +480,14 @@ public class GitController {
                     else testingWriter.append("No");
                     testingWriter.append("\n");
                 }
-            } finally {
-                trainingWriter.close();
-                testingWriter.close();
             }
         }
     }
 
     private void printDatasetToCsv(String projName) throws IOException {
-        FileWriter fileWriter = null;
-        try {
-            String outname = projName + "dataset.csv";
+        String outname = projName + "dataset.csv";
+        try (FileWriter fileWriter = new FileWriter(outname)) {
             //Name of CSV for output
-            fileWriter = new FileWriter(outname);
             fileWriter.append("Version,File Name,LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
             fileWriter.append("\n");
             for (Version release : releases) {
@@ -532,8 +523,6 @@ public class GitController {
                     }
                 }
             }
-        } finally {
-            fileWriter.close();
         }
     }
 

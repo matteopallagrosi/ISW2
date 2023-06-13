@@ -13,22 +13,14 @@ public class ClassifierEvaluation {
     private double kappa;
     private double f1;
 
-    public ClassifierEvaluation(String projName, int numReleases, String classifierName, double tpRate, double fpRate, double precision, double recall, double auc, double kappa, double fMeasure) {
+    public ClassifierEvaluation(String projName, int numReleases, String classifierName, double precision, double recall, double auc, double kappa) {
         this.projName = projName;
         this.numTrainingReleases = numReleases;
         this.classifier = classifierName;
-
-        this.tpRate = tpRate;
-        this.fpRate = fpRate;
-        //if (!Double.isNaN(precision))
-            this.precision = precision;
-        //if (!Double.isNaN(recall))
-            this.recall = recall;
-        //if (!Double.isNaN(auc))
-            this.auc = auc;
-        //if (!Double.isNaN(kappa))
-            this.kappa = kappa;
-            this.f1 = fMeasure;
+        this.precision = precision;
+        this.recall = recall;
+        this.auc = auc;
+        this.kappa = kappa;
     }
 
     public String getProjName() {
