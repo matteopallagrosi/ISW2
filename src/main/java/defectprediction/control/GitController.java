@@ -424,38 +424,41 @@ public class GitController {
             String testingName = projName + "testing_" + i + ".csv";
             try {
                 trainingWriter = new FileWriter(trainingName);
-                testingWriter = new FileWriter(testingName);
                 //Name of CSV for output
                 trainingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
                 trainingWriter.append("\n");
                 for (int j = 0; j < i; j++) {
-                        for (Class javaClass : releases.get(j).getAllClasses().values()) {
-                            trainingWriter.append(String.valueOf(javaClass.getSize()));
-                            trainingWriter.append(",");
-                            trainingWriter.append(String.valueOf(javaClass.getLocTouched()));
-                            trainingWriter.append(",");
-                            trainingWriter.append(String.valueOf(javaClass.getNr()));
-                            trainingWriter.append(",");
-                            trainingWriter.append(String.valueOf(javaClass.getnFix()));
-                            trainingWriter.append(",");
-                            trainingWriter.append(String.valueOf(javaClass.getnAuth()));
-                            trainingWriter.append(",");
-                            trainingWriter.append(String.valueOf(javaClass.getLocAdded()));
-                            trainingWriter.append(",");
-                            trainingWriter.append(String.valueOf(javaClass.getMaxLocAdded()));
-                            trainingWriter.append(",");
-                            trainingWriter.append(String.valueOf(javaClass.getChurn()));
-                            trainingWriter.append(",");
-                            trainingWriter.append(String.valueOf(javaClass.getMaxChurn()));
-                            trainingWriter.append(",");
-                            trainingWriter.append(String.valueOf(javaClass.getAverageChurn()));
-                            trainingWriter.append(",");
-                            if (javaClass.isBuggy()) trainingWriter.append("Yes");
-                            else trainingWriter.append("No");
-                            trainingWriter.append("\n");
-                        }
+                    for (Class javaClass : releases.get(j).getAllClasses().values()) {
+                        trainingWriter.append(String.valueOf(javaClass.getSize()));
+                        trainingWriter.append(",");
+                        trainingWriter.append(String.valueOf(javaClass.getLocTouched()));
+                        trainingWriter.append(",");
+                        trainingWriter.append(String.valueOf(javaClass.getNr()));
+                        trainingWriter.append(",");
+                        trainingWriter.append(String.valueOf(javaClass.getnFix()));
+                        trainingWriter.append(",");
+                        trainingWriter.append(String.valueOf(javaClass.getnAuth()));
+                        trainingWriter.append(",");
+                        trainingWriter.append(String.valueOf(javaClass.getLocAdded()));
+                        trainingWriter.append(",");
+                        trainingWriter.append(String.valueOf(javaClass.getMaxLocAdded()));
+                        trainingWriter.append(",");
+                        trainingWriter.append(String.valueOf(javaClass.getChurn()));
+                        trainingWriter.append(",");
+                        trainingWriter.append(String.valueOf(javaClass.getMaxChurn()));
+                        trainingWriter.append(",");
+                        trainingWriter.append(String.valueOf(javaClass.getAverageChurn()));
+                        trainingWriter.append(",");
+                        if (javaClass.isBuggy()) trainingWriter.append("Yes");
+                        else trainingWriter.append("No");
+                        trainingWriter.append("\n");
+                    }
                 }
-
+            } finally {
+                if (trainingWriter != null) trainingWriter.close();
+            }
+            try {
+                testingWriter = new FileWriter(testingName);
                 testingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
                 testingWriter.append("\n");
                 for (Class javaClass : releases.get(i).getAllClasses().values()) {
@@ -483,12 +486,9 @@ public class GitController {
                     else testingWriter.append("No");
                     testingWriter.append("\n");
                 }
-                trainingWriter.flush();
                 testingWriter.flush();
             } finally {
-                if (trainingWriter != null) trainingWriter.close();
                 if (testingWriter != null) testingWriter.close();
-
             }
         }
     }

@@ -63,9 +63,10 @@ public class Utils {
     public static void replaceLine(String filePath) throws IOException {
         BufferedReader reader = null;
         BufferedWriter writer = null;
+        StringBuilder content = null;
         try {
             reader = new BufferedReader(new FileReader(filePath));
-            StringBuilder content = new StringBuilder();
+            content = new StringBuilder();
             String line;
 
             int lineNumber = 1;
@@ -77,9 +78,10 @@ public class Utils {
                 }
                 lineNumber++;
             }
-
-            reader.close();
-
+        } finally {
+            if (reader != null) reader.close();
+        }
+        try {
             writer = new BufferedWriter(new FileWriter(filePath));
             writer.write(content.toString());
             writer.close();
@@ -89,9 +91,7 @@ public class Utils {
         } catch (IOException e) {
             out.println("Si è verificato un errore durante la sostituzione della linea: " + e.getMessage());
         } finally {
-            if (reader != null) reader.close();
             if (writer != null) writer.close();
-
         }
     }
 
