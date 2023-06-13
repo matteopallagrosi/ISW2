@@ -53,7 +53,10 @@ public class GitController {
         calculateFeatures();
         setFixCommits();
         setBuggyClasses();
+        deleteLastReleases();
         printDatasetToCsv(projectName);
+        printCsvWalkForward(projectName);
+        createArffDatasets(projectName);
     }
 
     //recupera tutti i commit di tutti i branch della repository corrente
@@ -406,6 +409,87 @@ public class GitController {
         }
     }
 
+    //per ridurre lo snoring viene rimossa metà delle release (le più recenti)
+    private void deleteLastReleases() {
+        int numReleases = releases.size();
+        releases.removeIf(currentRelease -> currentRelease.getIndex() > numReleases / 2);
+    }
+
+    private void printCsvWalkForward(String projName) throws IOException {
+        FileWriter trainingWriter = null;
+        FileWriter testingWriter = null;
+        //crea due csv per ogni release del progetto (a partire dalla seconda release), uno conterrà il set di dati per il training, l'altro per il setting, secondo un approccio walkForward
+        for (int i = 1; i < releases.size(); i++) { //l'indice i tiene traccia della creazione di training e testing set usati nell'i-esima iterazione del walkForward
+            try {
+                String trainingName = projName + "training_" + i + ".csv";
+                //Name of CSV for output
+                trainingWriter = new FileWriter(trainingName);
+                trainingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
+                trainingWriter.append("\n");
+                for (int j = 0; j < i; j++) {
+                        for (Class javaClass : releases.get(j).getAllClasses().values()) {
+                            trainingWriter.append(String.valueOf(javaClass.getSize()));
+                            trainingWriter.append(",");
+                            trainingWriter.append(String.valueOf(javaClass.getLocTouched()));
+                            trainingWriter.append(",");
+                            trainingWriter.append(String.valueOf(javaClass.getNr()));
+                            trainingWriter.append(",");
+                            trainingWriter.append(String.valueOf(javaClass.getnFix()));
+                            trainingWriter.append(",");
+                            trainingWriter.append(String.valueOf(javaClass.getnAuth()));
+                            trainingWriter.append(",");
+                            trainingWriter.append(String.valueOf(javaClass.getLocAdded()));
+                            trainingWriter.append(",");
+                            trainingWriter.append(String.valueOf(javaClass.getMaxLocAdded()));
+                            trainingWriter.append(",");
+                            trainingWriter.append(String.valueOf(javaClass.getChurn()));
+                            trainingWriter.append(",");
+                            trainingWriter.append(String.valueOf(javaClass.getMaxChurn()));
+                            trainingWriter.append(",");
+                            trainingWriter.append(String.valueOf(javaClass.getAverageChurn()));
+                            trainingWriter.append(",");
+                            if (javaClass.isBuggy()) trainingWriter.append("Yes");
+                            else trainingWriter.append("No");
+                            trainingWriter.append("\n");
+                        }
+                }
+
+                String testingName = projName + "testing_" + i + ".csv";
+                testingWriter = new FileWriter(testingName);
+                testingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
+                testingWriter.append("\n");
+                for (Class javaClass : releases.get(i).getAllClasses().values()) {
+                    testingWriter.append(String.valueOf(javaClass.getSize()));
+                    testingWriter.append(",");
+                    testingWriter.append(String.valueOf(javaClass.getLocTouched()));
+                    testingWriter.append(",");
+                    testingWriter.append(String.valueOf(javaClass.getNr()));
+                    testingWriter.append(",");
+                    testingWriter.append(String.valueOf(javaClass.getnFix()));
+                    testingWriter.append(",");
+                    testingWriter.append(String.valueOf(javaClass.getnAuth()));
+                    testingWriter.append(",");
+                    testingWriter.append(String.valueOf(javaClass.getLocAdded()));
+                    testingWriter.append(",");
+                    testingWriter.append(String.valueOf(javaClass.getMaxLocAdded()));
+                    testingWriter.append(",");
+                    testingWriter.append(String.valueOf(javaClass.getChurn()));
+                    testingWriter.append(",");
+                    testingWriter.append(String.valueOf(javaClass.getMaxChurn()));
+                    testingWriter.append(",");
+                    testingWriter.append(String.valueOf(javaClass.getAverageChurn()));
+                    testingWriter.append(",");
+                    if (javaClass.isBuggy()) testingWriter.append("Yes");
+                    else testingWriter.append("No");
+                    testingWriter.append("\n");
+                }
+            } finally {
+                trainingWriter.close();
+                testingWriter.close();
+            }
+        }
+    }
+
     private void printDatasetToCsv(String projName) throws IOException {
         FileWriter fileWriter = null;
         try {
@@ -448,8 +532,20 @@ public class GitController {
                 }
             }
         } finally {
-            fileWriter.flush();
             fileWriter.close();
         }
     }
+
+    private void createArffDatasets(String projName) throws IOException {
+        for (int i = 1; i < releases.size(); i++) {
+            String filename = projName + "training_" + i + ".csv";
+            Utils.convertCsvToArff(filename);
+        }
+        for (int i = 1; i < releases.size(); i++) {
+            String filename = projName + "testing_" + i + ".csv";
+            Utils.convertCsvToArff(filename);
+        }
+    }
+
+
 }

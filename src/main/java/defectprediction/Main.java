@@ -2,6 +2,7 @@ package defectprediction;
 
 import defectprediction.control.GitController;
 import defectprediction.control.JiraController;
+import defectprediction.control.WekaController;
 import defectprediction.model.Ticket;
 import defectprediction.model.Version;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -16,7 +17,7 @@ import java.util.Properties;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
+    public static void main(String[] args) throws Exception {
         Properties p = new Properties();
         String repoPath;
         String projectName;
@@ -44,5 +45,10 @@ public class Main {
         GitController gitInfo= new GitController(repo, releases,tickets);
 
         gitInfo.createDataset(projectName);
+
+        WekaController wekaController = new WekaController();
+        wekaController.simpleEvaluation(projectName, releases.size());
+
+        return;
     }
 }
