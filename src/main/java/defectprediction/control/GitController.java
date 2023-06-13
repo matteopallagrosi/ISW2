@@ -416,12 +416,15 @@ public class GitController {
     }
 
     private void printCsvWalkForward(String projName) throws IOException {
+        FileWriter trainingWriter = null;
+        FileWriter testingWriter = null;
         //crea due csv per ogni release del progetto (a partire dalla seconda release), uno conterrà il set di dati per il training, l'altro per il setting, secondo un approccio walkForward
         for (int i = 1; i < releases.size(); i++) { //l'indice i tiene traccia della creazione di training e testing set usati nell'i-esima iterazione del walkForward
             String trainingName = projName + "training_" + i + ".csv";
             String testingName = projName + "testing_" + i + ".csv";
-            try (FileWriter trainingWriter = new FileWriter(trainingName);
-                 FileWriter testingWriter = new FileWriter(testingName)) {
+            try {
+                trainingWriter = new FileWriter(trainingName);
+                testingWriter = new FileWriter(testingName);
                 //Name of CSV for output
                 trainingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
                 trainingWriter.append("\n");
@@ -480,14 +483,22 @@ public class GitController {
                     else testingWriter.append("No");
                     testingWriter.append("\n");
                 }
+                trainingWriter.flush();
+                testingWriter.flush();
+            } finally {
+                if (trainingWriter != null) trainingWriter.close();
+                if (testingWriter != null) testingWriter.close();
+
             }
         }
     }
 
     private void printDatasetToCsv(String projName) throws IOException {
+        FileWriter fileWriter = null;
+        //Name of CSV for output
         String outname = projName + "dataset.csv";
-        try (FileWriter fileWriter = new FileWriter(outname)) {
-            //Name of CSV for output
+        try {
+            fileWriter = new FileWriter(outname);
             fileWriter.append("Version,File Name,LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
             fileWriter.append("\n");
             for (Version release : releases) {
@@ -523,6 +534,9 @@ public class GitController {
                     }
                 }
             }
+            fileWriter.flush();
+        } finally {
+            if (fileWriter != null) fileWriter.close();
         }
     }
 

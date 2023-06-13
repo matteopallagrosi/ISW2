@@ -70,9 +70,11 @@ public class WekaController {
     }
 
     public void printEvaluationsToCsv(String projName) throws IOException {
+        FileWriter fileWriter = null;
+        //Name of CSV for output
         String outname = projName + "evaluations.csv";
-        try (FileWriter fileWriter = new FileWriter(outname);) {
-            //Name of CSV for output
+        try {
+            fileWriter = new FileWriter(outname);
             fileWriter.append("Dataset, #TrainingReleases, Classifier, TruePositiveRate, FalsePositiveRate, Precision, Recall, AUC, Kappa, FMeasure");
             fileWriter.append("\n");
             for (ClassifierEvaluation evaluation : evaluations) {
@@ -97,6 +99,8 @@ public class WekaController {
                 fileWriter.append(String.valueOf(evaluation.getF1()));
                 fileWriter.append("\n");
             }
+        } finally {
+            if (fileWriter != null) fileWriter.close();
         }
     }
 }

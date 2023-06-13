@@ -7,6 +7,7 @@ import org.json.JSONObject;
 import weka.core.Instances;
 import weka.core.converters.ArffSaver;
 import weka.core.converters.CSVLoader;
+
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -59,9 +60,11 @@ public class Utils {
         replaceLine(parts[0] + ".arff");
     }
 
-    public static void replaceLine(String filePath) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath));
-             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+    public static void replaceLine(String filePath) throws IOException {
+        BufferedReader reader = null;
+        BufferedWriter writer = null;
+        try {
+            reader = new BufferedReader(new FileReader(filePath));
             StringBuilder content = new StringBuilder();
             String line;
 
@@ -75,11 +78,20 @@ public class Utils {
                 lineNumber++;
             }
 
+            reader.close();
+
+            writer = new BufferedWriter(new FileWriter(filePath));
             writer.write(content.toString());
+            writer.close();
+
             out.println("Linea sostituita correttamente.");
 
         } catch (IOException e) {
             out.println("Si è verificato un errore durante la sostituzione della linea: " + e.getMessage());
+        } finally {
+            if (reader != null) reader.close();
+            if (writer != null) writer.close();
+
         }
     }
 
