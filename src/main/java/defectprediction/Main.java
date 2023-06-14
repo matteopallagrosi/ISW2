@@ -35,7 +35,7 @@ public class Main {
         //recupera tutte le releases del progetto (con index, id, nome, releaseDate)
         List<Version> releases = jiraInfo.getReleaseInfo(projectName);
         //recupera i fix ticket associati al progetti
-        List<Ticket> tickets = jiraInfo.getFixTicket("BOOKKEEPER", releases);
+        List<Ticket> tickets = jiraInfo.getFixTicket(projectName, releases);
 
         jiraInfo.calculateProportionColdStart();
         jiraInfo.assignInjectedInversion(releases);

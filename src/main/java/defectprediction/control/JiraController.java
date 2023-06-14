@@ -264,7 +264,7 @@ public class JiraController {
                 double injectedIndex = fixTicket.getInjectedVersion().getIndex();
                 double openingIndex = fixTicket.getOpeningVersion().getIndex();
                 double difference = fixIndex - openingIndex;
-                //se FV=OV poniamo FV-OV pari a 0 per evitare la divisione per 0
+                //se FV=OV poniamo FV-OV pari a 1 per evitare la divisione per 0
                 if (difference == 0) {
                     difference = 1;
                 }

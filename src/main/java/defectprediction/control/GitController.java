@@ -52,10 +52,8 @@ public class GitController {
         assignClassesToReleases();
         calculateFeatures();
         setFixCommits();
-        setBuggyClasses();
-        deleteLastReleases();
-        printDatasetToCsv(projectName);
         printCsvWalkForward(projectName);
+        deleteLastReleases();
         createArffDatasets(projectName);
     }
 
@@ -354,8 +352,7 @@ public class GitController {
         for (Version release : releases) {
             if (release.getAllCommits() != null) {
                 for (RevCommit fixCommit : release.getAllCommits()) {
-                    String fixMessage = fixTicket.getKey() + ":";
-                    if (fixCommit.getFullMessage().contains(fixMessage)) {
+                    if (fixCommit.getFullMessage().contains(fixTicket.getKey() + "]") || fixCommit.getFullMessage().contains(fixTicket.getKey() + ":")) {
                         fixTicket.getCommits().add(fixCommit);
                         found = true;
                     }
@@ -364,6 +361,33 @@ public class GitController {
         }
         return found;
     }
+
+
+
+    private void setBuggyClassesWalkForward(int index) throws GitAPIException, IOException {
+        //currentRelease rappresenta la release su cui pongo il punto di osservazione (cioè rispetto a cui etichetto le classi delle release fino a currentRelease)
+        //considera solo il ticket con fixVersion <= currentRelease (cioè esistenti rispetto al punto di osservazione fissato)
+        for (Ticket ticket : tickets) {
+            //scarta i ticket che hanno IV = FV, perchè siamo interessati solo ai difetti post-release (IV<FV)
+            if (ticket.getFixVersion().getIndex() > index || ticket.getInjectedVersion().getId() == ticket.getFixVersion().getId())
+                continue;
+
+            //recupera i fix commit associati al ticket
+            for (RevCommit fixCommit : ticket.getCommits()) {
+                //recupera il path delle classi modificate dal commit (ignorando le classi di test)
+                List<String> classPaths = getClassesFromCommit(fixCommit);
+                //recupera tutte le versioni tra IV (inclusa) e FV(esclusa) indicate sul ticket
+                //etichetta come buggy le classi modificate dal commit come in queste versioni
+                Version injectedVersion = ticket.getInjectedVersion();
+                Version fixVersion = ticket.getFixVersion();
+                setNumFixes(classPaths, fixVersion);
+                if (!classPaths.isEmpty()) {
+                    labelClasses(classPaths, injectedVersion, fixVersion);
+                }
+            }
+        }
+    }
+
 
     private void setBuggyClasses() throws GitAPIException, IOException {
         for (Ticket ticket : tickets) {
@@ -384,6 +408,8 @@ public class GitController {
             }
         }
     }
+
+
 
     private void labelClasses(List<String>  classPaths, Version injectedVersion, Version fixVersion) {
         //itera fino all'injected version e si ferma
@@ -415,13 +441,17 @@ public class GitController {
         releases.removeIf(currentRelease -> currentRelease.getIndex() > numReleases / 2);
     }
 
-    private void printCsvWalkForward(String projName) throws IOException {
+    private void printCsvWalkForward(String projName) throws IOException, GitAPIException {
         FileWriter trainingWriter = null;
         FileWriter testingWriter = null;
+
+        setBuggyClassesWalkForward(1);
+        //per ridurre lo snoring si considerano solo metà delle release
         //crea due csv per ogni release del progetto (a partire dalla seconda release), uno conterrà il set di dati per il training, l'altro per il setting, secondo un approccio walkForward
-        for (int i = 1; i < releases.size(); i++) { //l'indice i tiene traccia della creazione di training e testing set usati nell'i-esima iterazione del walkForward
+        for (int i = 2; i < releases.size() / 2; i++) { //l'indice i tiene traccia della creazione di training e testing set usati nell'i-esima iterazione del walkForward
             String trainingName = projName + "training_" + i + ".csv";
-            String testingName = projName + "testing_" + i + ".csv";
+
+            setBuggyClassesWalkForward(i);
             try {
                 trainingWriter = new FileWriter(trainingName);
                 //Name of CSV for output
@@ -457,6 +487,12 @@ public class GitController {
             } finally {
                 if (trainingWriter != null) trainingWriter.close();
             }
+        }
+
+        setBuggyClassesWalkForward(releases.size()-1);
+        //il testing set ad ogni iterazione è costruito usando tutte le informazioni disponibili (ponendo il punto di osservazione all'ultima release)
+        for (int i = 2; i < releases.size() / 2; i++) {
+            String testingName = projName + "testing_" + i + ".csv";
             try {
                 testingWriter = new FileWriter(testingName);
                 testingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
@@ -541,11 +577,11 @@ public class GitController {
     }
 
     private void createArffDatasets(String projName) throws IOException {
-        for (int i = 1; i < releases.size(); i++) {
+        for (int i = 2; i < releases.size(); i++) {
             String filename = projName + "training_" + i + ".csv";
             Utils.convertCsvToArff(filename);
         }
-        for (int i = 1; i < releases.size(); i++) {
+        for (int i = 2; i < releases.size(); i++) {
             String filename = projName + "testing_" + i + ".csv";
             Utils.convertCsvToArff(filename);
         }
