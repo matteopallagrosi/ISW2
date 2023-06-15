@@ -12,7 +12,8 @@ public class ClassifierEvaluation {
     private double auc;
     private double kappa;
     private double f1;
-    private boolean featureSelection;
+    private FeatureSelection featureSelection;
+    private Sampling sampling;
 
     public ClassifierEvaluation(String projName, int numReleases, String classifierName, double precision, double recall, double auc, double kappa) {
         this.projName = projName;
@@ -104,11 +105,19 @@ public class ClassifierEvaluation {
         this.f1 = f1;
     }
 
-    public boolean isFeatureSelection() {
+    public FeatureSelection getFeatureSelection() {
         return featureSelection;
     }
 
-    public void setFeatureSelection(boolean featureSelection) {
+    public void setFeatureSelection(FeatureSelection featureSelection) {
         this.featureSelection = featureSelection;
+    }
+
+    public Sampling getSampling() {
+        return sampling;
+    }
+
+    public void setSampling(Sampling sampling) {
+        this.sampling = sampling;
     }
 }
