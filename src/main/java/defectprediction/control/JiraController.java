@@ -80,7 +80,7 @@ public class JiraController {
     //risoluzione del ticket (sempre presenti), mentre le affected version (AV), e quindi l'injected version (IV), sono recuperate quando presenti.
     public List<Ticket> getFixTicket(String projName, List<Version> allReleases) throws IOException {
         List<Ticket> fixTickets = new ArrayList<>();
-        int j = 0;
+        int j;
         int i = 0;
         int total = 1;
         //Get JSON API for closed bugs w/ AV in the project
@@ -103,11 +103,7 @@ public class JiraController {
                 String resolutionDate = issuesObject.get("resolutiondate").toString();
                 JSONArray versions = issuesObject.getJSONArray("versions");
                 List<Version> affectedVersions = new ArrayList<>();
-                for (int k = 0; k < versions.length(); k++) {
-                    String affectedVersion = versions.getJSONObject(k).get("id").toString();
-                    int id = Integer.parseInt(affectedVersion);
-                    affectedVersions.add(getVersionFromId(id, allReleases));
-                }
+                getAffectedversions(versions, affectedVersions, allReleases);
                 LocalDateTime creation = convertStringToDate(creationDate);
                 LocalDateTime resolution = convertStringToDate(resolutionDate);
                 Version openingVersion = getVersionFromDate(creation, allReleases);
@@ -128,6 +124,14 @@ public class JiraController {
             out.println("deleted tickets: " + deletedTicket);
         } while (i < total);
         return fixTickets;
+    }
+
+    private void getAffectedversions(JSONArray versions, List<Version> affectedVersions, List<Version> allReleases) {
+        for (int k = 0; k < versions.length(); k++) {
+            String affectedVersion = versions.getJSONObject(k).get("id").toString();
+            int id = Integer.parseInt(affectedVersion);
+            affectedVersions.add(getVersionFromId(id, allReleases));
+        }
     }
 
     //recupera la versione di riferimento per una certa data

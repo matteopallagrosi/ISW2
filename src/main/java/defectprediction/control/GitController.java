@@ -23,6 +23,7 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -255,6 +256,12 @@ public class GitController {
 
         //ogni oggetto diff mantiene le informazioni sulle modifiche effettuate su un certo file in questo commit (rispetto al precedente)
         for (DiffEntry diff : diffs) {
+            getDiffs(diff, commit, release);
+        }
+    }
+
+
+    private void getDiffs(DiffEntry diff, RevCommit commit, Version release) throws IOException {
             if (diff.getNewPath().contains(CLASS_PATH) && !diff.getNewPath().contains(TEST_DIR)) {
                 DiffFormatter formatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
                 formatter.setRepository(this.repo);
@@ -265,47 +272,41 @@ public class GitController {
                 Class modifiedClass = release.getAllClasses().get(modifiedClassPath);
 
                 //ignora quelle classi che non appartengono allo stato finale del repository nella versione considerata (classi aggiunte e poi rimosse prima del commit finale della versione)
-                if (modifiedClass != null) {
+                if (modifiedClass == null) return;
 
-                    //calcola linee di codice aggiunte e rimosse con questa modifica nella classe
-                    int addedLines = 0;
-                    int deletedLines = 0;
-                    for (Edit edit : formatter.toFileHeader(diff).toEditList()) {
-                        addedLines += edit.getEndB() - edit.getBeginB();
-                        deletedLines += edit.getEndA() - edit.getBeginA();
-                    }
+                //calcola linee di codice aggiunte e rimosse con questa modifica nella classe
+                int addedLines = 0;
+                int deletedLines = 0;
+                for (Edit edit : formatter.toFileHeader(diff).toEditList()) {
+                    addedLines += edit.getEndB() - edit.getBeginB();
+                    deletedLines += edit.getEndA() - edit.getBeginA();
+                }
 
-                    int locTouched = addedLines + deletedLines;
-                    int churn = addedLines - deletedLines;
-                    //incremento le metriche di quella classe
-                    modifiedClass.incrementLocTouched(locTouched);
-                    modifiedClass.incrementLocAdded(addedLines);
-                    modifiedClass.incrementLocChurn(churn);
+                int locTouched = addedLines + deletedLines;
+                int churn = addedLines - deletedLines;
+                //incremento le metriche di quella classe
+                modifiedClass.incrementLocTouched(locTouched);
+                modifiedClass.incrementLocAdded(addedLines);
+                modifiedClass.incrementLocChurn(churn);
 
-                    if (addedLines >= modifiedClass.getMaxLocAdded()) {
-                        modifiedClass.setMaxLocAdded(addedLines);
-                    }
-                    if (churn >= modifiedClass.getMaxChurn()) {
-                        modifiedClass.setMaxChurn(churn);
-                    }
+                if (addedLines >= modifiedClass.getMaxLocAdded()) {
+                    modifiedClass.setMaxLocAdded(addedLines);
+                }
+                if (churn >= modifiedClass.getMaxChurn()) {
+                    modifiedClass.setMaxChurn(churn);
+                }
 
-                    modifiedClass.getChurnArray().add(churn);
+                modifiedClass.getChurnArray().add(churn);
 
-                    modifiedClass.incrementNumRevisions();
+                modifiedClass.incrementNumRevisions();
 
-                    //inserisce l'autore di questo commit tra gli autori della classe modificata dal commit
-                    List<String> authors = modifiedClass.getAuthors();
-                    String author = commit.getAuthorIdent().getName();
-                    if (!(authors.contains(author)))  {
-                        modifiedClass.getAuthors().add(author);
-                    }
-
-                    if(modifiedClass.getPath().equals("hedwig-server/src/main/java/org/apache/hedwig/server/common/UnexpectedError.java") && (release.getIndex() == 1)) {
-                        out.println(commitId);
-                    }
+                //inserisce l'autore di questo commit tra gli autori della classe modificata dal commit
+                List<String> authors = modifiedClass.getAuthors();
+                String author = commit.getAuthorIdent().getName();
+                if (!(authors.contains(author)))  {
+                    modifiedClass.getAuthors().add(author);
                 }
             }
-        }
     }
 
     private static AbstractTreeIterator prepareTreeParser(Repository repository, String objectId) throws IOException {
@@ -452,82 +453,91 @@ public class GitController {
             String trainingName = projName + "training_" + i + ".csv";
 
             setBuggyClassesWalkForward(i);
-            try {
-                trainingWriter = new FileWriter(trainingName);
-                //Name of CSV for output
-                trainingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
-                trainingWriter.append("\n");
-                for (int j = 0; j < i; j++) {
-                    for (Class javaClass : releases.get(j).getAllClasses().values()) {
-                        trainingWriter.append(String.valueOf(javaClass.getSize()));
-                        trainingWriter.append(",");
-                        trainingWriter.append(String.valueOf(javaClass.getLocTouched()));
-                        trainingWriter.append(",");
-                        trainingWriter.append(String.valueOf(javaClass.getNr()));
-                        trainingWriter.append(",");
-                        trainingWriter.append(String.valueOf(javaClass.getnFix()));
-                        trainingWriter.append(",");
-                        trainingWriter.append(String.valueOf(javaClass.getnAuth()));
-                        trainingWriter.append(",");
-                        trainingWriter.append(String.valueOf(javaClass.getLocAdded()));
-                        trainingWriter.append(",");
-                        trainingWriter.append(String.valueOf(javaClass.getMaxLocAdded()));
-                        trainingWriter.append(",");
-                        trainingWriter.append(String.valueOf(javaClass.getChurn()));
-                        trainingWriter.append(",");
-                        trainingWriter.append(String.valueOf(javaClass.getMaxChurn()));
-                        trainingWriter.append(",");
-                        trainingWriter.append(String.valueOf(javaClass.getAverageChurn()));
-                        trainingWriter.append(",");
-                        if (javaClass.isBuggy()) trainingWriter.append("Yes");
-                        else trainingWriter.append("No");
-                        trainingWriter.append("\n");
-                    }
-                }
-            } finally {
-                if (trainingWriter != null) trainingWriter.close();
-            }
+            printTrainingSet(trainingWriter, trainingName, i);
         }
 
         setBuggyClassesWalkForward(releases.size()-1);
         //il testing set ad ogni iterazione è costruito usando tutte le informazioni disponibili (ponendo il punto di osservazione all'ultima release)
         for (int i = 2; i < releases.size() / 2; i++) {
             String testingName = projName + "testing_" + i + ".csv";
-            try {
-                testingWriter = new FileWriter(testingName);
-                testingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
-                testingWriter.append("\n");
-                for (Class javaClass : releases.get(i).getAllClasses().values()) {
-                    testingWriter.append(String.valueOf(javaClass.getSize()));
-                    testingWriter.append(",");
-                    testingWriter.append(String.valueOf(javaClass.getLocTouched()));
-                    testingWriter.append(",");
-                    testingWriter.append(String.valueOf(javaClass.getNr()));
-                    testingWriter.append(",");
-                    testingWriter.append(String.valueOf(javaClass.getnFix()));
-                    testingWriter.append(",");
-                    testingWriter.append(String.valueOf(javaClass.getnAuth()));
-                    testingWriter.append(",");
-                    testingWriter.append(String.valueOf(javaClass.getLocAdded()));
-                    testingWriter.append(",");
-                    testingWriter.append(String.valueOf(javaClass.getMaxLocAdded()));
-                    testingWriter.append(",");
-                    testingWriter.append(String.valueOf(javaClass.getChurn()));
-                    testingWriter.append(",");
-                    testingWriter.append(String.valueOf(javaClass.getMaxChurn()));
-                    testingWriter.append(",");
-                    testingWriter.append(String.valueOf(javaClass.getAverageChurn()));
-                    testingWriter.append(",");
-                    if (javaClass.isBuggy()) testingWriter.append("Yes");
-                    else testingWriter.append("No");
-                    testingWriter.append("\n");
-                }
-                testingWriter.flush();
-            } finally {
-                if (testingWriter != null) testingWriter.close();
-            }
+            printTestingSet(testingWriter, testingName, i);
         }
     }
+
+    private void printTrainingSet(FileWriter trainingWriter, String trainingName, int i) throws IOException {
+        try {
+            trainingWriter = new FileWriter(trainingName);
+            //Name of CSV for output
+            trainingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
+            trainingWriter.append("\n");
+            for (int j = 0; j < i; j++) {
+                for (Class javaClass : releases.get(j).getAllClasses().values()) {
+                    trainingWriter.append(String.valueOf(javaClass.getSize()));
+                    trainingWriter.append(",");
+                    trainingWriter.append(String.valueOf(javaClass.getLocTouched()));
+                    trainingWriter.append(",");
+                    trainingWriter.append(String.valueOf(javaClass.getNr()));
+                    trainingWriter.append(",");
+                    trainingWriter.append(String.valueOf(javaClass.getnFix()));
+                    trainingWriter.append(",");
+                    trainingWriter.append(String.valueOf(javaClass.getnAuth()));
+                    trainingWriter.append(",");
+                    trainingWriter.append(String.valueOf(javaClass.getLocAdded()));
+                    trainingWriter.append(",");
+                    trainingWriter.append(String.valueOf(javaClass.getMaxLocAdded()));
+                    trainingWriter.append(",");
+                    trainingWriter.append(String.valueOf(javaClass.getChurn()));
+                    trainingWriter.append(",");
+                    trainingWriter.append(String.valueOf(javaClass.getMaxChurn()));
+                    trainingWriter.append(",");
+                    trainingWriter.append(String.valueOf(javaClass.getAverageChurn()));
+                    trainingWriter.append(",");
+                    if (javaClass.isBuggy()) trainingWriter.append("Yes");
+                    else trainingWriter.append("No");
+                    trainingWriter.append("\n");
+                }
+            }
+        } finally {
+            if (trainingWriter != null) trainingWriter.close();
+        }
+    }
+
+    private void printTestingSet(FileWriter testingWriter, String testingName, int i) throws IOException {
+        try {
+            testingWriter = new FileWriter(testingName);
+            testingWriter.append("LOC,LOC_touched,NR,NFix,NAuth,LOC_added,MAX_LOC_added,Churn,MAX_Churn,AVG_Churn,Buggy");
+            testingWriter.append("\n");
+            for (Class javaClass : releases.get(i).getAllClasses().values()) {
+                testingWriter.append(String.valueOf(javaClass.getSize()));
+                testingWriter.append(",");
+                testingWriter.append(String.valueOf(javaClass.getLocTouched()));
+                testingWriter.append(",");
+                testingWriter.append(String.valueOf(javaClass.getNr()));
+                testingWriter.append(",");
+                testingWriter.append(String.valueOf(javaClass.getnFix()));
+                testingWriter.append(",");
+                testingWriter.append(String.valueOf(javaClass.getnAuth()));
+                testingWriter.append(",");
+                testingWriter.append(String.valueOf(javaClass.getLocAdded()));
+                testingWriter.append(",");
+                testingWriter.append(String.valueOf(javaClass.getMaxLocAdded()));
+                testingWriter.append(",");
+                testingWriter.append(String.valueOf(javaClass.getChurn()));
+                testingWriter.append(",");
+                testingWriter.append(String.valueOf(javaClass.getMaxChurn()));
+                testingWriter.append(",");
+                testingWriter.append(String.valueOf(javaClass.getAverageChurn()));
+                testingWriter.append(",");
+                if (javaClass.isBuggy()) testingWriter.append("Yes");
+                else testingWriter.append("No");
+                testingWriter.append("\n");
+            }
+            testingWriter.flush();
+        } finally {
+            if (testingWriter != null) testingWriter.close();
+        }
+    }
+
 
     public void printDatasetToCsv(String projName) throws IOException {
         FileWriter fileWriter = null;
