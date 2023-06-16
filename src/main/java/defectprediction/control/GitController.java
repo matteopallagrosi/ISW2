@@ -389,7 +389,7 @@ public class GitController {
     }
 
 
-    private void setBuggyClasses() throws GitAPIException, IOException {
+    public void setBuggyClasses() throws GitAPIException, IOException {
         for (Ticket ticket : tickets) {
             //scarta i ticket che hanno IV = FV, perchè siamo interessati solo ai difetti post-release (IV<FV)
             if (ticket.getInjectedVersion().getId() == ticket.getFixVersion().getId()) continue;
@@ -529,7 +529,7 @@ public class GitController {
         }
     }
 
-    private void printDatasetToCsv(String projName) throws IOException {
+    public void printDatasetToCsv(String projName) throws IOException {
         FileWriter fileWriter = null;
         //Name of CSV for output
         String outname = projName + "dataset.csv";

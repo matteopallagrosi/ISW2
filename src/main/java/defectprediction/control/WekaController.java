@@ -235,9 +235,9 @@ public class WekaController {
         return costMatrix;
     }
 
-    private static void printProbabilities(Classifier classifier, Instances training, Instances testing) throws Exception {
+    public static void printProbabilities(Classifier classifier, Instances training, Instances testing) throws Exception {
         int numtesting = testing.numInstances();
-        System.out.printf("There are %d test instances\n", numtesting);
+        out.println("There are " + numtesting + " test instances");
 
         classifier.buildClassifier(training);
 
@@ -262,7 +262,7 @@ public class WekaController {
                     classifier.distributionForInstance(testing.instance(i));
 
             // Print out the true label, predicted label, and the distribution.
-            System.out.printf("%5d: true=%-10s, predicted=%-10s, distribution=",
+            out.printf("%5d: true=%-10s, predicted=%-10s, distribution=",
                     i, trueClassLabel, predictedClassLabel);
 
             // Loop over all the prediction labels in the distribution.
@@ -279,11 +279,11 @@ public class WekaController {
                 double predictionProbability =
                         predictionDistribution[predictionDistributionIndex];
 
-                System.out.printf("[%10s : %6.3f]",
+                out.printf("[%10s : %6.3f]",
                         predictionDistributionIndexAsClassLabel,
                         predictionProbability);
             }
-            System.out.printf("\n");
+            out.println();
         }
     }
 
