@@ -3,14 +3,17 @@ package defectprediction.control;
 import static java.lang.System.*;
 
 import defectprediction.model.ClassifierEvaluation;
+import defectprediction.model.CostSensitive;
 import defectprediction.model.FeatureSelection;
 import defectprediction.model.Sampling;
 import weka.attributeSelection.CfsSubsetEval;
 import weka.attributeSelection.GreedyStepwise;
 import weka.classifiers.Classifier;
+import weka.classifiers.CostMatrix;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.lazy.IBk;
+import weka.classifiers.meta.CostSensitiveClassifier;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
@@ -78,6 +81,7 @@ public class WekaController {
             evaluation.setF1(eval.fMeasure(0));
             evaluation.setFeatureSelection(FeatureSelection.NONE);
             evaluation.setSampling(Sampling.NONE);
+            evaluation.setCostSensitive(CostSensitive.NONE);
             evaluations.add(evaluation);
 
 
@@ -112,6 +116,7 @@ public class WekaController {
             evaluationWithFilter.setF1(filteredEval.fMeasure(0));
             evaluationWithFilter.setFeatureSelection(FeatureSelection.GREEDYSTEPWISE);
             evaluationWithFilter.setSampling(Sampling.NONE);
+            evaluationWithFilter.setCostSensitive(CostSensitive.NONE);
             evaluations.add(evaluationWithFilter);
 
 
@@ -135,6 +140,7 @@ public class WekaController {
             evaluationWithUnderSampling.setF1(underSamplingEval.fMeasure(0));
             evaluationWithUnderSampling.setFeatureSelection(FeatureSelection.NONE);
             evaluationWithUnderSampling.setSampling(Sampling.UNDERSAMPLING);
+            evaluationWithUnderSampling.setCostSensitive(CostSensitive.NONE);
             evaluations.add(evaluationWithUnderSampling);
 
 
@@ -168,6 +174,7 @@ public class WekaController {
             evaluationWithOverSampling.setF1(overSamplingEval.fMeasure(0));
             evaluationWithOverSampling.setFeatureSelection(FeatureSelection.NONE);
             evaluationWithOverSampling.setSampling(Sampling.OVERSAMPLING);
+            evaluationWithOverSampling.setCostSensitive(CostSensitive.NONE);
             evaluations.add(evaluationWithOverSampling);
 
             //BALANCING CON SMOTE
@@ -191,7 +198,92 @@ public class WekaController {
             evaluationWithSmote.setF1(smoteEval.fMeasure(0));
             evaluationWithSmote.setFeatureSelection(FeatureSelection.NONE);
             evaluationWithSmote.setSampling(Sampling.SMOTE);
+            evaluationWithSmote.setCostSensitive(CostSensitive.NONE);
             evaluations.add(evaluationWithSmote);
+
+
+
+            //COST-SENSITIVE CLASSIFIER
+            CostSensitiveClassifier c1 = new CostSensitiveClassifier();
+            c1.setClassifier(classifier);
+            c1.setCostMatrix(createCostMatrix(1, 10));
+            //se settato a true realizza cost-sensitive classifier (altrimenti fa cost sensitive learning)
+            c1.setMinimizeExpectedCost(true);
+            c1.buildClassifier(training);
+
+            Evaluation ec1 = new Evaluation(testing, c1.getCostMatrix());
+            ec1.evaluateModel(c1, testing);
+
+            ClassifierEvaluation evaluationWithCostSensitive = new ClassifierEvaluation(projectName, i, classifierName, ec1.precision(0), ec1.recall(0), ec1.areaUnderROC(0), ec1.kappa());
+            evaluationWithCostSensitive.setTpRate(ec1.truePositiveRate(0));
+            evaluationWithCostSensitive.setFpRate(ec1.falsePositiveRate(0));
+            evaluationWithCostSensitive.setF1(ec1.fMeasure(0));
+            evaluationWithCostSensitive.setFeatureSelection(FeatureSelection.NONE);
+            evaluationWithCostSensitive.setSampling(Sampling.NONE);
+            evaluationWithCostSensitive.setCostSensitive(CostSensitive.COST_SENSITIVE_CLASSIFIER);
+            evaluations.add(evaluationWithCostSensitive);
+        }
+    }
+
+    private CostMatrix createCostMatrix(double weightFalsePositive, double
+            weightFalseNegative) {
+        CostMatrix costMatrix = new CostMatrix(2);
+        costMatrix.setCell(0, 0, 0.0);
+        costMatrix.setCell(1, 0, weightFalsePositive);
+        costMatrix.setCell(0, 1, weightFalseNegative);
+        costMatrix.setCell(1, 1, 0.0);
+        return costMatrix;
+    }
+
+    private static void printProbabilities(Classifier classifier, Instances training, Instances testing) throws Exception {
+        int numtesting = testing.numInstances();
+        System.out.printf("There are %d test instances\n", numtesting);
+
+        classifier.buildClassifier(training);
+
+        // Loop over each test instance.
+        for (int i = 0; i < numtesting; i++) {
+            // Get the true class label from the instance's own classIndex.
+            //ritorna il valore che l'istanza i-esima ha nel test set
+            String trueClassLabel =
+                    testing.instance(i).toString(testing.classIndex());
+
+            // Make the prediction here.
+            double predictionIndex =
+                    classifier.classifyInstance(testing.instance(i));
+
+            // Get the predicted class label from the predictionIndex.
+            String predictedClassLabel =
+                    testing.classAttribute().value((int) predictionIndex);
+
+            // Get the prediction probability distribution.
+            //ritorna la probabilità che l'instanza i-esima appartenga a ciascuna delle classi possibili (in questo caso 2)
+            double[] predictionDistribution =
+                    classifier.distributionForInstance(testing.instance(i));
+
+            // Print out the true label, predicted label, and the distribution.
+            System.out.printf("%5d: true=%-10s, predicted=%-10s, distribution=",
+                    i, trueClassLabel, predictedClassLabel);
+
+            // Loop over all the prediction labels in the distribution.
+            //in questo caso abbiamo due possibili classi quindi due probabilità
+            for (int predictionDistributionIndex = 0;
+                 predictionDistributionIndex < predictionDistribution.length;
+                 predictionDistributionIndex++) {
+                // Get this distribution index's class label.
+                String predictionDistributionIndexAsClassLabel =
+                        testing.classAttribute().value(
+                                predictionDistributionIndex);
+
+                // Get the probability.
+                double predictionProbability =
+                        predictionDistribution[predictionDistributionIndex];
+
+                System.out.printf("[%10s : %6.3f]",
+                        predictionDistributionIndexAsClassLabel,
+                        predictionProbability);
+            }
+            System.out.printf("\n");
         }
     }
 
@@ -201,7 +293,7 @@ public class WekaController {
         String outname = projName + "evaluations.csv";
         try {
             fileWriter = new FileWriter(outname);
-            fileWriter.append("Dataset, #TrainingReleases, Classifier, FeatureSelection, Balancing, TruePositiveRate, FalsePositiveRate, Precision, Recall, AUC, Kappa, FMeasure");
+            fileWriter.append("Dataset, #TrainingReleases, Classifier, FeatureSelection, Balancing, CostSensitive, TruePositiveRate, FalsePositiveRate, Precision, Recall, AUC, Kappa, FMeasure");
             fileWriter.append("\n");
             for (ClassifierEvaluation evaluation : evaluations) {
                 fileWriter.append(evaluation.getProjName());
@@ -213,6 +305,8 @@ public class WekaController {
                 fileWriter.append(String.valueOf(evaluation.getFeatureSelection()));
                 fileWriter.append(",");
                 fileWriter.append(String.valueOf(evaluation.getSampling()));
+                fileWriter.append(",");
+                fileWriter.append(String.valueOf(evaluation.getCostSensitive()));
                 fileWriter.append(",");
                 fileWriter.append(String.valueOf(evaluation.getTpRate()));
                 fileWriter.append(",");

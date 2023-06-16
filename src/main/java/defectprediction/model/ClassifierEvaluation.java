@@ -14,6 +14,7 @@ public class ClassifierEvaluation {
     private double f1;
     private FeatureSelection featureSelection;
     private Sampling sampling;
+    private CostSensitive costSensitive;
 
     public ClassifierEvaluation(String projName, int numReleases, String classifierName, double precision, double recall, double auc, double kappa) {
         this.projName = projName;
@@ -119,5 +120,13 @@ public class ClassifierEvaluation {
 
     public void setSampling(Sampling sampling) {
         this.sampling = sampling;
+    }
+
+    public CostSensitive getCostSensitive() {
+        return costSensitive;
+    }
+
+    public void setCostSensitive(CostSensitive costSensitive) {
+        this.costSensitive = costSensitive;
     }
 }
