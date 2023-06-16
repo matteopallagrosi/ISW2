@@ -110,13 +110,9 @@ public class JiraController {
                 Version fixVersion = getVersionFromDate(resolution, allReleases);
                 Version injectedVersion = (!affectedVersions.isEmpty()) ? affectedVersions.get(0) : null;
 
-                //escludiamo i ticket in cui IV = FV (ossia i difetti che non sono post-release) oppure in cui IV > OV (non è possibile che un difetto
-                // sia stato individuato dopo essere stato fixato)
-                if ((injectedVersion != null) && ((fixVersion.getIndex() == injectedVersion.getIndex()) || (injectedVersion.getIndex() > openingVersion.getIndex()))) {
-                    deletedTicket++;
-                }
+                Ticket ticket = createTicket(key, creation, resolution, injectedVersion, fixVersion, openingVersion, affectedVersions);
+                if (ticket == null) deletedTicket++;
                 else {
-                    Ticket ticket = new Ticket(key, creation, resolution, openingVersion, fixVersion, affectedVersions, injectedVersion);
                     fixTickets.add(ticket);
                     fixVersion.getFixTickets().add(ticket);
                 }
@@ -124,6 +120,20 @@ public class JiraController {
             out.println("deleted tickets: " + deletedTicket);
         } while (i < total);
         return fixTickets;
+    }
+
+    private Ticket createTicket(String key, LocalDateTime creation, LocalDateTime resolution, Version injectedVersion, Version fixVersion, Version openingVersion, List<Version> affectedVersions) {
+        //escludiamo i ticket in cui IV = FV (ossia i difetti che non sono post-release)
+        if ((injectedVersion != null) && (fixVersion.getIndex() == injectedVersion.getIndex())) {
+            return null;
+        }
+        else {
+            //se IV > OV ignora l'informazione fornita da Jira su Injected Version (non è possibile che un difetto sia stato individuato dopo essere stato fixato)
+            if ((injectedVersion != null) && (injectedVersion.getIndex() > openingVersion.getIndex())) {
+                injectedVersion = null;
+            }
+            return new Ticket(key, creation, resolution, openingVersion, fixVersion, affectedVersions, injectedVersion);
+        }
     }
 
     private void getAffectedversions(JSONArray versions, List<Version> affectedVersions, List<Version> allReleases) {
