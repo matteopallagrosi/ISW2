@@ -86,17 +86,19 @@ public class WekaController {
 
 
 
-            //dataset con FEATURE SELECTION (FILTER APPROACH CON GREEDY STEPWISE COME SEARCH ENGINE)
+            //dataset con FEATURE SELECTION (FILTER APPROACH CON GREEDY STEPWISE (FORWARD) COME SEARCH ENGINE)
             AttributeSelection filter = new AttributeSelection();
             CfsSubsetEval evalSubset = new CfsSubsetEval();
             GreedyStepwise search = new GreedyStepwise();
-            search.setSearchBackwards(true);
+            //applica forward search
+            search.setSearchBackwards(false);
             filter.setEvaluator(evalSubset);
             filter.setSearch(search);
 
+            //la feature selection è effettuata considerando solo le istanze del training set
             filter.setInputFormat(training);
 
-            //applica il filtro al training e al testing set
+            //applica il filtro al training e al testing set (cioè rimuove gli attributi precedentemente selezionati)
             Instances filteredTraining = Filter.useFilter(training, filter);
             Instances filteredTesting = Filter.useFilter(testing, filter);
 
