@@ -16,7 +16,6 @@ import java.util.Properties;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        int a;
         Properties p = new Properties();
         String repoPath;
         String projectName;
